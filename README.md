@@ -18,7 +18,12 @@ Requires Android 8.0 (API 26) or newer.
 ## What it does
 
 - Search as you type, debounced by 300 ms. A blank field shows a prompt instead of a list.
+- The assignment's API is mocked and returns the same catalogue for every search term, so the
+  app does the searching itself: a product matches when its name or one of its USPs contains
+  every word of the query, case-insensitive. "ipad" shows the iPads and the Apple Pencil,
+  "iphone 64gb" only the 64 GB iPhones, "samsung" shows "No products found".
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
+  Pages with no matching product are skipped automatically.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when there is one) and the next-day
   delivery promise.
@@ -99,9 +104,15 @@ can be introduced at the data layer if the catalogue ever grows. The last page i
 `pageCount` on purpose: the API repeats the last page for any page number beyond it, so an
 empty response never comes.
 
-**A pass-through use case.** `SearchProductsUseCase` only forwards to the repository today. It
-exists so the ViewModel depends on an operation, not on a data source: validation, caching or a
-second source can be added there without the ViewModel changing.
+**Searching happens in the use case.** The API ignores the search term, and the PDF says so.
+Rather than ship a search box that does nothing, `SearchProductsUseCase` filters each page by
+the query and skips pages that filter down to nothing, so the ViewModel always receives rows or
+the last page. The ViewModel, the repository and the UI don't know this happens. The filter is
+deliberately not in the ViewModel or the repository: the use case is the place for business
+logic between screen and data, and with a backend that searches, this class goes back to a
+single repository call and nothing else changes. Fetching the whole catalogue up front and
+filtering locally was rejected because it would throw away the paging and is the one shape
+you'd never ship against a real search API.
 
 **Prices as integer cents.** The API sends euros as a decimal number. The domain stores
 `salesPriceCents: Int` because floating-point money is a known source of bugs. Formatting
@@ -136,7 +147,7 @@ The convention plugins in `build-logic` keep each module's build file small.
 | Module | Test | Covers |
 |---|---|---|
 | search/domain | `ProductPageTest` | next page from page count |
-| search/domain | `SearchProductsUseCaseTest` | pass-through |
+| search/domain | `SearchProductsUseCaseTest` | name and USP matching, every word must match, case-insensitive, blank query, skipping empty pages, last page empty, failure pass-through |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON, query parameters, 500, no connection, bad JSON |
 | search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule, USP cap |
