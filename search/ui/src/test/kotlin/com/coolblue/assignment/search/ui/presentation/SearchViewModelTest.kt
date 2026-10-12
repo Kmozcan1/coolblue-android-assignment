@@ -131,4 +131,90 @@ class SearchViewModelTest {
 
         assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Idle)
     }
+
+    private fun loadedViewModel(): SearchViewModel {
+        coEvery { searchProducts("iphone", 1) } returns page(1)
+        val viewModel = viewModel()
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+        return viewModel
+    }
+
+    @Test
+    fun `given page 1 on screen, when LoadMore, then page 2 is appended and next page advances`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } returns page(2)
+
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(1, 2).inOrder()
+        assertThat(loaded.nextPage).isEqualTo(3)
+        assertThat(loaded.isLoadingMore).isFalse()
+    }
+
+    @Test
+    fun `given the last page on screen, when LoadMore, then nothing is requested`() = runTest {
+        coEvery { searchProducts("iphone", 1) } returns page(1, pageCount = 1)
+        val viewModel = viewModel()
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
+        advanceUntilIdle()
+
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { searchProducts(any(), any()) }
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).nextPage).isNull()
+    }
+
+    @Test
+    fun `given a load more in flight, when LoadMore again, then only one request is made`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } coAnswers { delay(1_000); page(2) }
+
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceTimeBy(100)
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isLoadingMore).isTrue()
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { searchProducts("iphone", 2) }
+    }
+
+    @Test
+    fun `given load more fails, then rows stay and the error is set, and Retry loads page 2`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } returns AppResult.Failure(AppError.Server(500)) andThen page(2)
+
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+        val failed = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(failed.products.map { it.id }).containsExactly(1)
+        assertThat(failed.loadMoreError).isEqualTo(AppError.Server(500))
+
+        viewModel.onAction(SearchUiAction.LoadMore) // ignored while the error shows
+        viewModel.onAction(SearchUiAction.Retry)
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(1, 2).inOrder()
+        assertThat(loaded.loadMoreError).isNull()
+        coVerify(exactly = 2) { searchProducts("iphone", 2) }
+    }
+
+    @Test
+    fun `given a load more in flight, when the query changes, then it is cancelled and the new query loads`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } coAnswers { delay(1_000); page(2) }
+        coEvery { searchProducts("ipad", 1) } returns page(1, products = listOf(product(10)))
+
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceTimeBy(100)
+        viewModel.onAction(SearchUiAction.QueryChanged("ipad"))
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(10)
+    }
 }

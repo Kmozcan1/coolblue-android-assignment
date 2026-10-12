@@ -51,7 +51,7 @@ class SearchViewModel @Inject constructor(
     fun onAction(action: SearchUiAction) {
         when (action) {
             is SearchUiAction.QueryChanged -> onQueryChanged(action.query)
-            SearchUiAction.LoadMore -> Unit
+            SearchUiAction.LoadMore -> loadMore()
             SearchUiAction.Retry -> retry()
         }
     }
@@ -66,9 +66,19 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    private fun loadMore() {
+        val content = _uiState.value.content as? SearchContent.Loaded ?: return
+        // No next page, already loading, or showing an error (the user retries that by hand).
+        if (content.nextPage == null || content.isLoadingMore || content.loadMoreError != null) return
+        pageRequests.tryEmit(content.nextPage)
+    }
+
     private fun retry() {
-        when (_uiState.value.content) {
+        when (val content = _uiState.value.content) {
             is SearchContent.Error -> pageRequests.tryEmit(FIRST_PAGE)
+            is SearchContent.Loaded -> if (content.loadMoreError != null && content.nextPage != null) {
+                pageRequests.tryEmit(content.nextPage)
+            }
             else -> Unit
         }
     }
@@ -78,7 +88,7 @@ class SearchViewModel @Inject constructor(
             _uiState.update { it.copy(content = SearchContent.Idle) }
             return
         }
-        loadFirstPage(query)
+        if (page == FIRST_PAGE) loadFirstPage(query) else loadNextPage(query, page)
     }
 
     private suspend fun loadFirstPage(query: String) {
@@ -88,6 +98,28 @@ class SearchViewModel @Inject constructor(
             is AppResult.Failure -> SearchContent.Error(result.error)
         }
         _uiState.update { it.copy(content = content) }
+    }
+
+    private suspend fun loadNextPage(query: String, page: Int) {
+        updateLoaded { it.copy(isLoadingMore = true, loadMoreError = null) }
+        when (val result = searchProducts(query, page)) {
+            is AppResult.Success -> updateLoaded { loaded ->
+                loaded.copy(
+                    products = loaded.products + result.data.products.map { it.toUiModel() },
+                    nextPage = result.data.nextPage,
+                    isLoadingMore = false,
+                )
+            }
+            is AppResult.Failure -> updateLoaded { it.copy(isLoadingMore = false, loadMoreError = result.error) }
+        }
+    }
+
+    /** Applies [transform] only while the content is Loaded; a query change in between makes it a no-op. */
+    private fun updateLoaded(transform: (SearchContent.Loaded) -> SearchContent.Loaded) {
+        _uiState.update { state ->
+            val content = state.content
+            if (content is SearchContent.Loaded) state.copy(content = transform(content)) else state
+        }
     }
 
     private fun ProductPage.toContent(): SearchContent =
