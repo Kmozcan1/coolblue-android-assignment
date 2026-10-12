@@ -204,6 +204,27 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `given results on screen, when the query is refined, then the rows stay and refresh until the new rows land`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone 6", 1) } coAnswers { delay(1_000); page(1, products = listOf(product(6))) }
+
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone 6"))
+        viewModel.onAction(SearchUiAction.LoadMore) // inside the debounce: page 2 would belong to the new query, ignored
+        advanceTimeBy(500) // past the debounce, the request is in flight
+        val refreshing = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(refreshing.products.map { it.id }).containsExactly(1)
+        assertThat(refreshing.isRefreshing).isTrue()
+
+        viewModel.onAction(SearchUiAction.LoadMore) // in flight: still ignored
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(6)
+        assertThat(loaded.isRefreshing).isFalse()
+        coVerify(exactly = 0) { searchProducts(any(), 2) }
+    }
+
+    @Test
     fun `given a load more in flight, when the query changes, then it is cancelled and the new query loads`() = runTest {
         val viewModel = loadedViewModel()
         coEvery { searchProducts("iphone", 2) } coAnswers { delay(1_000); page(2) }

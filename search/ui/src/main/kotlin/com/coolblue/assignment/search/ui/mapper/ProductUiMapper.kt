@@ -6,7 +6,6 @@ import java.text.NumberFormat
 import java.util.Locale
 
 private val Dutch: Locale = Locale.forLanguageTag("nl-NL")
-private const val MAX_USPS = 3
 
 internal fun Product.toUiModel(): ProductUiModel = ProductUiModel(
     id = id,
@@ -17,7 +16,7 @@ internal fun Product.toUiModel(): ProductUiModel = ProductUiModel(
     listPrice = listPriceCents?.takeIf { it > salesPriceCents }?.let(::formatPrice),
     rating = formatRating(reviewAverage),
     reviewCount = reviewCount,
-    usps = usps.take(MAX_USPS),
+    usps = usps,
     promoText = promoText,
     nextDayDelivery = nextDayDelivery,
 )

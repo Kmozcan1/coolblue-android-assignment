@@ -29,5 +29,7 @@ sealed interface SearchContent {
         val nextPage: Int?,
         val isLoadingMore: Boolean = false,
         val loadMoreError: AppError? = null,
+        /** A refined query is loading; these rows belong to the previous query and stay until it lands. */
+        val isRefreshing: Boolean = false,
     ) : SearchContent
 }

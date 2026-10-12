@@ -37,13 +37,25 @@ private val loaded = SearchContent.Loaded(products = listOf(iphone, macbook), ne
 @PreviewLightDark
 @Composable
 private fun ProductRowPreview() {
-    CoolblueTheme { ProductRow(iphone) }
+    CoolblueTheme { ProductRow(iphone, onClick = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun ProductRowPlainPreview() {
-    CoolblueTheme { ProductRow(macbook) }
+    CoolblueTheme { ProductRow(macbook, onClick = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun ProductDetailPreview() {
+    CoolblueTheme { ProductDetail(iphone) }
+}
+
+@PreviewLightDark
+@Composable
+private fun ProductRowSkeletonPreview() {
+    CoolblueTheme { ProductRowSkeleton() }
 }
 
 @PreviewLightDark

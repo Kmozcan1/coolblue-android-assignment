@@ -1,6 +1,7 @@
 # Claude Code files, kept out of the submission
 CLAUDE.md
 .claude/
+.hallmark/
 
 # Android Studio / Gradle
 *.iml

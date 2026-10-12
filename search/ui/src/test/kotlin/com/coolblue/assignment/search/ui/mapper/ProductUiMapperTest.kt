@@ -43,11 +43,6 @@ class ProductUiMapperTest {
         assertThat(product.toUiModel().rating).isEqualTo("9,1")
     }
 
-    @Test
-    fun `given four usps, when mapped, then only the first three are kept`() {
-        assertThat(product.toUiModel().usps).containsExactly("a", "b", "c").inOrder()
-    }
-
     // ICU puts a non-breaking space after the euro sign; the assertions read better with a plain one.
     private fun String.normalised() = replace(' ', ' ')
 }

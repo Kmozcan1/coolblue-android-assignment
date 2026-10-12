@@ -27,8 +27,9 @@ Requires Android 8.0 (API 26) or newer.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when there is one) and the next-day
   delivery promise.
-- Errors are shown in place: a full-screen message with Retry when the first page fails, a
+- Errors are shown in place: a message with Retry under the field when the first page fails, a
   footer row with Retry when a later page fails, so the rows already on screen stay.
+- Tapping a row opens the product in a bottom sheet: the full name, every USP, a larger photo.
 - The query survives rotation and process death. After a restore the search runs again by itself.
 
 ## Architecture
@@ -65,6 +66,13 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
 - `SearchUiState` holds the query and a sealed `SearchContent`: `Idle`, `Loading`, `Empty`,
   `Error` or `Loaded`. Exactly one is active, so there is no combination of booleans that can
   disagree with each other.
+- Tapping a row opens the same product in a bottom sheet, nothing clipped, every USP. Which
+  sheet is open is screen-local `rememberSaveable` state, not part of `SearchUiState`: it is
+  transient chrome over a product the `Loaded` content already holds. A query change closes it,
+  and so does a restore after process death, since the search starts over.
+- `Loading` only happens on a cold start. Refining a query keeps the rows on screen with
+  `Loaded.isRefreshing` set until the new rows replace them at the top; `LoadMore` is ignored
+  meanwhile, since page 2 would belong to the new query.
 - The repository returns `AppResult`: `Success` with data or `Failure` with an `AppError`.
   Exceptions stop at the data layer; the ViewModel only ever sees these two cases.
 
@@ -114,6 +122,12 @@ single repository call and nothing else changes. Fetching the whole catalogue up
 filtering locally was rejected because it would throw away the paging and is the one shape
 you'd never ship against a real search API.
 
+**Product images are cropped to a 1:2 tile.** Every image the API links to is 300×750 on white
+with the product centred and filling the width; measured across phones, tablets, a watch, a
+keyboard and a cable, every product sits inside the middle 600 px. So the row shows the image
+with `ContentScale.Crop` in an 84×168 dp tile: the empty top and bottom tenths go, every product
+stays whole (the Pencil loses its ends), and no grey box with a white strip inside it.
+
 **Prices as integer cents.** The API sends euros as a decimal number. The domain stores
 `salesPriceCents: Int` because floating-point money is a known source of bugs. Formatting
 happens once, in the UI mapper, with the Dutch locale (`€ 369,00`).
@@ -130,7 +144,7 @@ own threads, so `withContext(Dispatchers.IO)` would add nothing.
 the query in `SavedStateHandle` costs two lines, and because the request pipeline observes
 that flow, the search runs again on its own after a restore.
 
-**Classic `OutlinedTextField(value, onValueChange)`.** The query is updated synchronously in
+**Classic `TextField(value, onValueChange)`.** The query is updated synchronously in
 `onAction`, so the field never lags behind the keyboard. The newer `TextFieldState` API was
 considered and left out: it would move Compose state into the ViewModel and complicate the
 tests.
@@ -150,7 +164,7 @@ The convention plugins in `build-logic` keep each module's build file small.
 | search/domain | `SearchProductsUseCaseTest` | name and USP matching, every word must match, case-insensitive, blank query, skipping empty pages, last page empty, failure pass-through |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON, query parameters, 500, no connection, bad JSON |
-| search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule, USP cap |
+| search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
 | search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, duplicate guard, load-more error and retry, cancellation on query change, saved query |
 
 Run them with `./gradlew test`. They also run on every push through GitHub Actions.
@@ -168,7 +182,8 @@ was reviewed, and the commit history reads as the build sequence.
 
 ## Left out on purpose
 
-- A product detail screen: outside the user story. Rows are not clickable.
+- A product detail screen: outside the user story. The bottom sheet shows what the search
+  result already holds; there is no second request and no navigation.
 - Paging 3: see above.
 - A navigation library: one screen.
 - ktlint or detekt: valuable on a team, noise in an assignment of this size.

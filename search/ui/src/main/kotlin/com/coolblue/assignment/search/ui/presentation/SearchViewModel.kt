@@ -60,16 +60,26 @@ class SearchViewModel @Inject constructor(
         savedStateHandle[KEY_QUERY] = newQuery
         // Updated synchronously so the text field never lags behind the keyboard.
         _uiState.update { state ->
-            // A cleared field shows the prompt at once instead of after the debounce.
-            val content = if (newQuery.isBlank()) SearchContent.Idle else state.content
-            state.copy(query = newQuery, content = content)
+            val content = state.content
+            state.copy(
+                query = newQuery,
+                content = when {
+                    // A cleared field shows the prompt at once instead of after the debounce.
+                    newQuery.isBlank() -> SearchContent.Idle
+                    // From this keystroke the rows belong to the previous query, so LoadMore must not
+                    // fetch the new query's page 2 under them during the debounce.
+                    content is SearchContent.Loaded -> content.copy(isRefreshing = true)
+                    else -> content
+                },
+            )
         }
     }
 
     private fun loadMore() {
         val content = _uiState.value.content as? SearchContent.Loaded ?: return
-        // No next page, already loading, or showing an error (the user retries that by hand).
-        if (content.nextPage == null || content.isLoadingMore || content.loadMoreError != null) return
+        // No next page, already loading, showing an error (the user retries that by hand), or refreshing:
+        // page 2 would be fetched for the new query and appended to the old rows.
+        if (content.nextPage == null || content.isLoadingMore || content.isRefreshing || content.loadMoreError != null) return
         pageRequests.tryEmit(content.nextPage)
     }
 
@@ -92,7 +102,17 @@ class SearchViewModel @Inject constructor(
     }
 
     private suspend fun loadFirstPage(query: String) {
-        _uiState.update { it.copy(content = SearchContent.Loading) }
+        // Rows already on screen stay while a refined query loads; only a cold start shows the skeleton.
+        // (onQueryChanged already set isRefreshing; this also drops a cancelled load-more's state.)
+        _uiState.update { state ->
+            val content = state.content
+            val loading = if (content is SearchContent.Loaded) {
+                content.copy(isRefreshing = true, isLoadingMore = false, loadMoreError = null)
+            } else {
+                SearchContent.Loading
+            }
+            state.copy(content = loading)
+        }
         val content = when (val result = searchProducts(query, FIRST_PAGE)) {
             is AppResult.Success -> result.data.toContent()
             is AppResult.Failure -> SearchContent.Error(result.error)
