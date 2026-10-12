@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +52,11 @@ internal fun SearchScreen(
                     actionLabel = stringResource(R.string.retry),
                     onAction = { onAction(SearchUiAction.Retry) },
                 )
-                is SearchContent.Loaded -> Text("${content.products.size} products")
+                is SearchContent.Loaded -> ProductList(
+                    content = content,
+                    onLoadMore = { onAction(SearchUiAction.LoadMore) },
+                    onRetry = { onAction(SearchUiAction.Retry) },
+                )
             }
         }
     }
