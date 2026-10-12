@@ -1,0 +1,13 @@
+# Claude Code files, kept out of the submission
+CLAUDE.md
+.claude/
+
+# Android Studio / Gradle
+*.iml
+.gradle/
+.kotlin/
+.idea/
+build/
+/local.properties
+/captures
+.DS_Store
