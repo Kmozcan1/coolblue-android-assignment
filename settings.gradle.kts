@@ -24,3 +24,4 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 rootProject.name = "CoolblueAssignment"
 
 include(":app")
+include(":core:ui")
