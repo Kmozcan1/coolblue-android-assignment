@@ -11,3 +11,6 @@ build/
 /local.properties
 /captures
 .DS_Store
+
+# Generated per machine by Android Studio on sync; pins the daemon JDK to the local JBR
+gradle/gradle-daemon-jvm.properties
