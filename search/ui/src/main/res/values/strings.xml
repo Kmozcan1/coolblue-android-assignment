@@ -1,0 +1,16 @@
+<resources>
+    <string name="search_hint">Search for a product</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_idle">Type to search Coolblue\'s products</string>
+    <string name="search_empty">No products found for “%1$s”</string>
+    <string name="retry">Retry</string>
+    <string name="load_more_error">Couldn’t load more products</string>
+    <string name="error_network">No internet connection</string>
+    <string name="error_server">Something went wrong on our side</string>
+    <string name="error_unknown">Something went wrong</string>
+    <string name="delivered_tomorrow">Delivered tomorrow</string>
+    <plurals name="review_count">
+        <item quantity="one">%d review</item>
+        <item quantity="other">%d reviews</item>
+    </plurals>
+</resources>
