@@ -25,3 +25,4 @@ rootProject.name = "CoolblueAssignment"
 
 include(":app")
 include(":core:ui")
+include(":core:test")
