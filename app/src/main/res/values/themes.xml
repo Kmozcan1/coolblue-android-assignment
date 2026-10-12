@@ -1,0 +1,4 @@
+<resources>
+    <!-- Compose draws everything; the platform theme only needs to hide the action bar. -->
+    <style name="Theme.Coolblue" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
