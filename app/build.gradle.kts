@@ -38,4 +38,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(projects.core.ui)
+    implementation(projects.core.network)
+    implementation(projects.search.data) // so Hilt sees the repository binding
+    implementation(projects.search.ui)
 }
