@@ -42,7 +42,7 @@ internal fun SearchField(
     val focusRequester = remember { FocusRequester() }
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    // One step darker than surfaceContainer, so the field still reads as a field when unfocused.
+    // One step further from the paper than surfaceContainer, so the field still reads as a field when unfocused.
     val fill = MaterialTheme.colorScheme.surfaceContainerHigh
     TextField(
         value = query,

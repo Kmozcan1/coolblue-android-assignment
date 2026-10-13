@@ -67,8 +67,10 @@ internal fun SearchScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val headerState = rememberCollapsingHeaderState()
     val scope = rememberCoroutineScope()
-    // The field slides away only over the list; anything else shows it.
-    LaunchedEffect(uiState.content is SearchContent.Loaded) { headerState.show() }
+    // The field slides away only over a scrolled list. Typing brings it back (a mouse wheel or TalkBack scroll
+    // hides it without taking its focus), and so does anything that replaces the rows or is not a list.
+    val rowsQuery = (uiState.content as? SearchContent.Loaded)?.query
+    LaunchedEffect(uiState.query, rowsQuery) { headerState.show() }
 
     // Edge-to-edge switches off the window's own keyboard resizing, so the keyboard is an inset here:
     // the grid shrinks above it instead of scrolling under it.
@@ -120,11 +122,14 @@ internal fun SearchScreen(
                     is SearchContent.Loaded -> ProductList(
                         content = content,
                         isRefining = content.query != uiState.query,
-                        headerScroll = headerState.scrollConnection,
+                        header = headerState,
                         onProductClick = { openProductId = it },
                         onLoadMore = { onAction(SearchUiAction.LoadMore) },
                         onRetry = { onAction(SearchUiAction.Retry) },
-                        onRefresh = { onAction(SearchUiAction.Refresh) },
+                        onRefresh = {
+                            scope.launch { headerState.show() } // TalkBack's Refresh jumps to the top: the field comes too
+                            onAction(SearchUiAction.Refresh)
+                        },
                     )
                 }
             }

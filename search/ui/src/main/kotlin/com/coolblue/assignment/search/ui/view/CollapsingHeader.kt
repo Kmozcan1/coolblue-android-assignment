@@ -14,12 +14,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.unit.Velocity
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
  * A header that slides away as the list scrolls down and comes back as soon as it scrolls up, then
- * settles fully shown or fully hidden. The list hands it the scroll through [scrollConnection].
+ * settles fully shown or fully hidden. The list hands it the scroll through [scrollConnection] and
+ * calls [settle] whenever it stops, however it was scrolled.
  */
 @Stable
 internal class CollapsingHeaderState {
@@ -30,24 +33,26 @@ internal class CollapsingHeaderState {
     var offset by mutableFloatStateOf(0f)
         private set
 
+    private var animation: Job? = null
+
     val scrollConnection = object : NestedScrollConnection {
         // Before the list scrolls, the header takes what it needs to move: the content then follows the finger.
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            animation?.cancel() // the finger takes over from a settle in progress
             val previous = offset
             offset = (offset + available.y).coerceIn(-height.toFloat(), 0f)
             return Offset(0f, offset - previous)
         }
-
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            animateTo(if (offset < -height / 2f) -height.toFloat() else 0f)
-            return Velocity.Zero
-        }
     }
+
+    suspend fun settle() = animateTo(if (offset < -height / 2f) -height.toFloat() else 0f)
 
     suspend fun show() = animateTo(0f)
 
-    private suspend fun animateTo(target: Float) {
-        if (offset != target) animate(offset, target) { value, _ -> offset = value }
+    /** One animation at a time: a newer target, or the finger, cancels the running one. */
+    private suspend fun animateTo(target: Float) = coroutineScope {
+        animation?.cancel()
+        if (offset != target) animation = launch { animate(offset, target) { value, _ -> offset = value } }
     }
 }
 

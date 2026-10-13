@@ -27,7 +27,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalFocusManager
@@ -41,6 +41,7 @@ import com.coolblue.assignment.search.ui.R
 import com.coolblue.assignment.search.ui.mapper.messageRes
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 
 /** Ask for the next page when the user is this many rows from the end. */
@@ -53,7 +54,7 @@ internal val ProductGridCells = GridCells.Adaptive(minSize = 400.dp)
 internal fun ProductList(
     content: SearchContent.Loaded,
     isRefining: Boolean,
-    headerScroll: NestedScrollConnection,
+    header: CollapsingHeaderState,
     onProductClick: (Int) -> Unit,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
@@ -82,6 +83,11 @@ internal fun ProductList(
     val rowsQuery by rememberUpdatedState(content.query)
     LaunchedEffect(gridState) {
         snapshotFlow { rowsQuery }.drop(1).collect { gridState.requestScrollToItem(0) }
+    }
+    // The field above the list settles fully shown or hidden whenever the list stops: after a drag or a
+    // fling, but also after a mouse wheel or TalkBack scroll, which never fling.
+    LaunchedEffect(gridState, header) {
+        snapshotFlow { gridState.isScrollInProgress }.filter { !it }.collect { header.settle() }
     }
     // A drag on the list means the user is done typing: drop the field's focus, which also hides the keyboard.
     val focusManager = LocalFocusManager.current
@@ -119,7 +125,7 @@ internal fun ProductList(
             // Inside the pull box, so dragging a half-pulled indicator back retracts it before the header moves.
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(headerScroll)
+                .nestedScroll(header.scrollConnection)
                 .semantics { customActions = listOf(refreshAction) },
         ) {
             // The rule sits above each cell, so in a multi-column line the rules align whatever the cell heights.
@@ -170,7 +176,8 @@ internal fun ProductList(
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
                 color = MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f),
+                // Opaque, so the rows scrolling under the bar do not show through its track.
+                trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f).compositeOver(MaterialTheme.colorScheme.background),
             )
         }
     }
