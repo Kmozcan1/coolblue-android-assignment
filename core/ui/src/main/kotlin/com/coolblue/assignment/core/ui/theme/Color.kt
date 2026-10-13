@@ -33,6 +33,10 @@ internal val LightColors = lightColorScheme(
     surfaceContainerHighest = Color(0xFFDAE0E6),
     outline = Color(0xFFD2D8DE),
     outlineVariant = Color(0xFFD2D8DE),
+    // Inverse (the snackbar): the dark palette's paper, ink and blue. The blue passes 5.6:1 on that paper.
+    inverseSurface = Color(0xFF090E12),
+    inverseOnSurface = Color(0xFFE7ECF0),
+    inversePrimary = CoolblueColors.Blue,
 )
 
 // Dark palette: paper at 16 %, ink at 94 %. Accents lighten and lose chroma; the brand blue reads as text here.
@@ -54,4 +58,8 @@ internal val DarkColors = darkColorScheme(
     surfaceContainerHighest = Color(0xFF1C2228),
     outline = Color(0xFF272C31),
     outlineVariant = Color(0xFF272C31),
+    // Inverse (the snackbar): the light palette's paper, ink and text-safe blue (4.9:1).
+    inverseSurface = Color(0xFFF4F7FB),
+    inverseOnSurface = Color(0xFF111920),
+    inversePrimary = Color(0xFF006DC3),
 )
