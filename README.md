@@ -46,6 +46,8 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 
 ## Architecture
 
+![How the app is built: nine modules with dependencies pointing inwards, a search going down to the API and back as one screen state, and one request at a time through collectLatest](docs/architecture.svg)
+
 Multi-module Clean Architecture with MVVM and unidirectional data flow. One feature, `search`,
 split into three layers, plus a few shared modules.
 
