@@ -29,12 +29,12 @@ internal sealed interface SearchContent {
         val nextPage: Int?,
         val isLoadingMore: Boolean = false,
         val loadMoreError: AppError? = null,
-        /**
-         * Page 1 is loading and these rows stay until it lands: either a refined query (the rows belong to
-         * the previous one) or a pull to refresh (the same query, fetched again).
-         */
+        /** Page 1 is loading, for a refined query or a refresh; these rows stay until it lands. */
         val isRefreshing: Boolean = false,
-        /** The last pull to refresh failed; the rows stay, since they still answer the query. */
-        val refreshError: AppError? = null,
+        /** The last refresh failed. The rows stay: they still answer the query. */
+        val refreshFailure: RefreshFailure? = null,
     ) : SearchContent
 }
+
+/** Not a data class: two failures with the same error must not be equal, or the second gets no snackbar. */
+internal class RefreshFailure(val error: AppError)

@@ -26,6 +26,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,6 +109,7 @@ internal fun SearchScreen(
                     )
                     is SearchContent.Loaded -> ProductList(
                         content = content,
+                        isRefining = content.query != uiState.query,
                         onProductClick = { openProductId = it },
                         onLoadMore = { onAction(SearchUiAction.LoadMore) },
                         onRetry = { onAction(SearchUiAction.Retry) },
@@ -118,20 +120,23 @@ internal fun SearchScreen(
         }
     }
 
-    // A failed refresh leaves the rows on screen, so it is told in a snackbar rather than in their place.
-    // Acknowledged once dismissed, so a rotation mid-snackbar shows it again rather than losing it.
-    val refreshError = (uiState.content as? SearchContent.Loaded)?.refreshError
-    if (refreshError != null) {
-        val message = stringResource(R.string.refresh_error, stringResource(refreshError.messageRes()))
+    val openProduct = (uiState.content as? SearchContent.Loaded)?.products?.firstOrNull { it.id == openProductId }
+    // A refresh dropped this product. Forget it, or the sheet would reopen when a later page brings it back.
+    if (openProductId != null && openProduct == null) SideEffect { openProductId = null }
+
+    // Not under an open sheet, where the snackbar would time out unseen.
+    val refreshFailure = (uiState.content as? SearchContent.Loaded)?.refreshFailure
+    if (refreshFailure != null && openProduct == null) {
+        val message = stringResource(R.string.refresh_error, stringResource(refreshFailure.error.messageRes()))
         val retryLabel = stringResource(R.string.retry)
-        LaunchedEffect(refreshError) {
-            // Long, not the Indefinite an action label defaults to: the snackbar must go away on its own.
-            val result = snackbarHostState.showSnackbar(message, actionLabel = retryLabel, duration = SnackbarDuration.Long)
-            onAction(if (result == SnackbarResult.ActionPerformed) SearchUiAction.Refresh else SearchUiAction.RefreshErrorShown)
+        LaunchedEffect(refreshFailure) {
+            // An action label alone would make it Indefinite.
+            val result = snackbarHostState.showSnackbar(message, retryLabel, duration = SnackbarDuration.Long)
+            onAction(SearchUiAction.RefreshFailureShown)
+            if (result == SnackbarResult.ActionPerformed) onAction(SearchUiAction.Refresh)
         }
     }
 
-    val openProduct = (uiState.content as? SearchContent.Loaded)?.products?.firstOrNull { it.id == openProductId }
     if (openProduct != null) {
         ModalBottomSheet(
             onDismissRequest = { openProductId = null },

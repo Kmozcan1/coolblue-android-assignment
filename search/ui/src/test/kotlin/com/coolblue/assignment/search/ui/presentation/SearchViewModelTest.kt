@@ -401,11 +401,45 @@ class SearchViewModelTest {
         val failed = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(failed.products.map { it.id }).containsExactly(1)
         assertThat(failed.isRefreshing).isFalse()
-        assertThat(failed.refreshError).isEqualTo(AppError.Network)
+        assertThat(failed.refreshFailure?.error).isEqualTo(AppError.Network)
 
-        viewModel.onAction(SearchUiAction.RefreshErrorShown)
+        viewModel.onAction(SearchUiAction.RefreshFailureShown)
 
-        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).refreshError).isNull()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).refreshFailure).isNull()
+    }
+
+    @Test
+    fun `given a refresh fails twice with the same error, then the second failure is a new value`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 1) } returns AppResult.Failure(AppError.Network)
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceUntilIdle()
+        val first = (viewModel.uiState.value.content as SearchContent.Loaded).refreshFailure
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceUntilIdle()
+        val second = (viewModel.uiState.value.content as SearchContent.Loaded).refreshFailure
+
+        assertThat(second).isNotEqualTo(first)
+    }
+
+    @Test
+    fun `given a refresh in flight, when the query is edited and edited back, then the refresh still lands`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 1) } coAnswers { delay(1_000); page(1, products = listOf(product(5))) }
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        runCurrent()
+        viewModel.onAction(SearchUiAction.QueryChanged("iphonex"))
+        runCurrent()
+        advanceTimeBy(100)
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
+
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isRefreshing).isTrue()
+        advanceUntilIdle()
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(5)
+        assertThat(loaded.isRefreshing).isFalse()
     }
 
     @Test

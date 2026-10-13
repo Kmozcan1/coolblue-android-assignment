@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
@@ -45,6 +47,7 @@ internal val ProductGridCells = GridCells.Adaptive(minSize = 400.dp)
 @Composable
 internal fun ProductList(
     content: SearchContent.Loaded,
+    isRefining: Boolean,
     onProductClick: (Int) -> Unit,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
@@ -80,18 +83,22 @@ internal fun ProductList(
         gridState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().collect { focusManager.clearFocus() }
     }
 
-    val refreshLabel = stringResource(R.string.refresh)
+    // TalkBack cannot pull the list down.
+    val refreshAction = CustomAccessibilityAction(stringResource(R.string.refresh)) {
+        gridState.requestScrollToItem(0)
+        onRefresh()
+        true
+    }
 
-    // A pull reloads page 1 of the rows' query. The same indicator shows while a refined query loads:
-    // either way a request is out and the rows stay until page 1 lands.
-    PullToRefreshBox(isRefreshing = content.isRefreshing, onRefresh = onRefresh, modifier = modifier.fillMaxSize()) {
+    PullToRefreshBox(
+        isRefreshing = content.isRefreshing && !isRefining,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize(),
+    ) {
         LazyVerticalGrid(
             columns = ProductGridCells,
             state = gridState,
-            // TalkBack cannot pull the list down, so the refresh is offered as an action too.
-            modifier = Modifier
-                .fillMaxSize()
-                .semantics { customActions = listOf(CustomAccessibilityAction(refreshLabel) { onRefresh(); true }) },
+            modifier = Modifier.fillMaxSize().semantics { customActions = listOf(refreshAction) },
         ) {
             // The rule sits above each cell, so in a multi-column line the rules align whatever the cell heights.
             items(content.products, key = { it.id }) { product ->
@@ -121,6 +128,14 @@ internal fun ProductList(
                     )
                 }
             }
+        }
+        // The rows belong to the previous query until the new ones land; the bar says a request is out.
+        if (isRefining) {
+            // The default track is secondaryContainer, which the theme leaves at Material's purple.
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
         }
     }
 }
