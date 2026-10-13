@@ -51,7 +51,7 @@ class SearchViewModelTest {
         advanceUntilIdle()
 
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
-        assertThat(loaded.query).isEmpty()
+        assertThat(loaded.searchedQuery).isEmpty()
         assertThat(loaded.products.map { it.id }).containsExactly(1)
     }
 
@@ -165,7 +165,7 @@ class SearchViewModelTest {
         advanceUntilIdle()
 
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
-        assertThat(loaded.query).isEmpty()
+        assertThat(loaded.searchedQuery).isEmpty()
         assertThat(loaded.products.map { it.id }).containsExactly(7)
         assertThat(loaded.isRefreshing).isFalse()
     }

@@ -108,17 +108,18 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
 
 ### One request pipeline
 
-Every request the ViewModel makes goes through a single flow:
+Every request the ViewModel makes goes through a single flow, started by
+`searchProductsForEachQueryAndPage()`:
 
 ```kotlin
-val queries = query.withIndex().debounce { (index, value) -> if (index == 0 && value == openingQuery) 0 else 300 }
-merge(queries.map { 1 }, pageRequests)
-    .collectLatest { page -> load(query.value, page) }
+val firstPageOfEachSearch = query.withIndex().debounce { (index, value) -> if (index == 0 && value == openingQuery) 0 else 300 }.map { 1 }
+merge(firstPageOfEachSearch, productPageRequests)
+    .collectLatest { page -> loadProducts(query.value, page) }
 ```
 
 The query asks for page 1: the opening one (blank, or restored after process death) at once, each
 edit after 300 ms without typing. `Retry`, `LoadMore` and `Refresh` push a page number into
-`pageRequests`. `collectLatest` cancels the previous load whenever a new request arrives, so at
+`productPageRequests`. `collectLatest` cancels the previous load whenever a new request arrives, so at
 most one request is ever in flight for the screen and a slow, stale response can never overwrite
 a newer state. There are no job fields to cancel by hand.
 

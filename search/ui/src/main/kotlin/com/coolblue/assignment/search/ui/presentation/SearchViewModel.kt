@@ -7,11 +7,13 @@ import com.coolblue.assignment.core.domain.result.AppResult
 import com.coolblue.assignment.search.domain.model.ProductPage
 import com.coolblue.assignment.search.domain.usecase.SearchProductsUseCase
 import com.coolblue.assignment.search.ui.mapper.toUiModel
+import com.coolblue.assignment.search.ui.model.ProductUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,159 +36,143 @@ internal class SearchViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    // The query lives in SavedStateHandle so it survives process death; the pipeline below
-    // observes it, so after a restore the search simply runs again.
     private val query: StateFlow<String> = savedStateHandle.getStateFlow(KEY_QUERY, "")
 
-    // Dropping the older request keeps tryEmit from ever failing; collectLatest wants only the newest anyway.
-    private val pageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val productPageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
-    // Outlives an edit away and back, which recomputes isRefreshing from the query alone.
     private var refreshPending = false
 
-    // The query is searched straight away (the whole catalogue while it is blank), so the screen opens
-    // on the skeleton.
     private val _uiState = MutableStateFlow(SearchUiState(query = query.value, content = SearchContent.Loading))
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     init {
-        // Every request goes through this one pipeline. collectLatest cancels the previous
-        // load when a new request arrives, so at most one request is in flight and a stale
-        // response can never overwrite a newer state.
-        val openingQuery = query.value
+        searchProductsForEachQueryAndPage()
+    }
+
+    private fun searchProductsForEachQueryAndPage() {
+        val pagesToLoad = merge(firstPageOfEachSearch(), productPageRequests)
         viewModelScope.launch {
-            // The opening query (blank, or restored after process death) goes at once; typing waits out the
-            // debounce. Compared by value too, so a query typed before collection starts is still debounced.
-            val queries = query.withIndex().debounce { (index, value) ->
-                if (index == 0 && value == openingQuery) Duration.ZERO else DEBOUNCE_MS.milliseconds
-            }
-            merge(queries.map { FIRST_PAGE }, pageRequests)
-                .collectLatest { page -> load(query.value, page) }
+            pagesToLoad.collectLatest { page -> loadProducts(query.value, page) }
         }
+    }
+
+    private fun firstPageOfEachSearch(): Flow<Int> {
+        val openingQuery = query.value
+        return query.withIndex()
+            .debounce { (index, value) ->
+                val isOpeningQuery = index == 0 && value == openingQuery
+                if (isOpeningQuery) Duration.ZERO else TYPING_PAUSE_MS.milliseconds
+            }
+            .map { FIRST_PAGE }
     }
 
     fun onAction(action: SearchUiAction) {
         when (action) {
             is SearchUiAction.QueryChanged -> onQueryChanged(action.query)
-            SearchUiAction.LoadMore -> loadMore()
-            SearchUiAction.Retry -> retry()
-            SearchUiAction.Refresh -> refresh()
-            SearchUiAction.RefreshFailureShown -> updateLoaded { it.copy(refreshFailure = null) }
+            SearchUiAction.LoadMore -> loadMoreProducts()
+            SearchUiAction.Retry -> retryFailedLoad()
+            SearchUiAction.Refresh -> refreshResults()
+            SearchUiAction.RefreshFailureShown -> updateShownResults { it.copy(refreshFailure = null) }
         }
     }
 
     private fun onQueryChanged(newQuery: String) {
         if (newQuery == _uiState.value.query) return
         savedStateHandle[KEY_QUERY] = newQuery
-        // Updated synchronously so the text field never lags behind the keyboard.
-        _uiState.update { state ->
-            val content = state.content
-            state.copy(
-                query = newQuery,
-                content = when {
-                    // From this keystroke the rows belong to the previous query, so LoadMore must not
-                    // fetch the new query's page 2 under them during the debounce. Edited back to the
-                    // query the rows answer: nothing to wait for, unless a refresh is.
-                    content is SearchContent.Loaded -> content.copy(isRefreshing = content.query != newQuery || refreshPending)
-                    else -> content
-                },
-            )
-        }
+        _uiState.update { state -> state.copy(query = newQuery, content = state.content.awaitingResultsFor(newQuery)) }
     }
 
-    private fun loadMore() {
-        val content = _uiState.value.content as? SearchContent.Loaded ?: return
-        // Only when idle: not on the last page, while loading, or after an error (the user retries that by hand).
-        // Nor while refreshing: page 1 is about to replace these rows, and after a refined query page 2 would not
-        // even match them.
-        val paging = content.paging as? Paging.Idle ?: return
-        if (content.isRefreshing) return
-        pageRequests.tryEmit(paging.nextPage)
+    private fun SearchContent.awaitingResultsFor(newQuery: String): SearchContent =
+        if (this is SearchContent.Loaded) copy(isRefreshing = searchedQuery != newQuery || refreshPending) else this
+
+    private fun loadMoreProducts() {
+        val shownResults = _uiState.value.content as? SearchContent.Loaded ?: return
+        val paging = shownResults.paging as? Paging.Idle ?: return
+        if (shownResults.isRefreshing) return
+        productPageRequests.tryEmit(paging.nextPage)
     }
 
-    private fun retry() {
+    private fun retryFailedLoad() {
         when (val content = _uiState.value.content) {
-            is SearchContent.Error -> pageRequests.tryEmit(FIRST_PAGE)
-            // Not while refreshing: page 1 is about to replace these rows, so page N would not follow them.
+            is SearchContent.Error -> productPageRequests.tryEmit(FIRST_PAGE)
             is SearchContent.Loaded -> if (content.paging is Paging.Failed && !content.isRefreshing) {
-                pageRequests.tryEmit(content.paging.nextPage)
+                productPageRequests.tryEmit(content.paging.nextPage)
             }
 
             SearchContent.Loading, is SearchContent.Empty -> Unit
         }
     }
 
-    private fun refresh() {
-        val content = _uiState.value.content as? SearchContent.Loaded ?: return
-        if (content.isRefreshing) return // page 1 is already on its way
+    private fun refreshResults() {
+        val shownResults = _uiState.value.content as? SearchContent.Loaded ?: return
+        if (shownResults.isRefreshing) return
         refreshPending = true
-        // Now, not when the load starts, so the pull indicator never springs back.
-        updateLoaded { it.copy(isRefreshing = true) }
-        pageRequests.tryEmit(FIRST_PAGE)
+        updateShownResults { it.copy(isRefreshing = true) }
+        productPageRequests.tryEmit(FIRST_PAGE)
     }
 
-    private suspend fun load(query: String, page: Int) {
+    private suspend fun loadProducts(query: String, page: Int) {
         if (page == FIRST_PAGE) loadFirstPage(query) else loadNextPage(query, page)
     }
 
     private suspend fun loadFirstPage(query: String) {
-        val rowsForQuery = (_uiState.value.content as? SearchContent.Loaded)?.takeIf { it.query == query }
-        if (rowsForQuery != null && !rowsForQuery.isRefreshing) {
-            // Edited away and back: nothing to fetch. A load-more that was in flight has just been
-            // cancelled by collectLatest, so its spinner goes too; the list asks again.
-            updateLoaded { it.copy(isRefreshing = false, paging = it.paging.loadCancelled()) }
+        val shownResultsForQuery = (_uiState.value.content as? SearchContent.Loaded)?.takeIf { it.searchedQuery == query }
+        val areResultsAlreadyShown = shownResultsForQuery != null && !shownResultsForQuery.isRefreshing
+        if (areResultsAlreadyShown) {
+            allowLoadingMoreAgain()
             return
         }
-        val isRefresh = rowsForQuery != null
-        // Rows already on screen stay while a refined query loads; only a cold start shows the skeleton.
-        // (onQueryChanged already set isRefreshing; this also drops a cancelled load-more's state.)
-        _uiState.update { state ->
-            val content = state.content
-            val loading = if (content is SearchContent.Loaded) {
-                content.copy(isRefreshing = true, paging = content.paging.idle(), refreshFailure = null)
-            } else {
-                SearchContent.Loading
-            }
-            state.copy(content = loading)
-        }
+        val isRefresh = shownResultsForQuery != null
+        keepShownProductsOrShowSkeleton()
         val result = if (isRefresh) {
-            // An instant answer would only blink the pull indicator, so it stays up long enough to be seen.
-            takingAtLeast(REFRESH_MIN_MS.milliseconds) { searchProducts(query, FIRST_PAGE) }
+            takingAtLeast(MIN_REFRESH_SPINNER_MS.milliseconds) { searchProducts(query, FIRST_PAGE) }
         } else {
             searchProducts(query, FIRST_PAGE)
         }
-        // Typed on while this was in flight: the debounce will load the newer query, and these rows
-        // must not show under it meanwhile. collectLatest only cancels once that debounce fires.
-        if (this.query.value != query) return
+        val hasQueryChangedMeanwhile = this.query.value != query
+        if (hasQueryChangedMeanwhile) return
         refreshPending = false
         when (result) {
             is AppResult.Success -> _uiState.update { it.copy(content = result.data.toContent(query)) }
             is AppResult.Failure -> if (isRefresh) {
-                updateLoaded { it.copy(isRefreshing = false, refreshFailure = RefreshFailure(result.error)) }
+                updateShownResults { it.copy(isRefreshing = false, refreshFailure = RefreshFailure(result.error)) }
             } else {
                 _uiState.update { it.copy(content = SearchContent.Error(result.error)) }
             }
         }
     }
 
+    private fun allowLoadingMoreAgain() {
+        updateShownResults { it.copy(paging = it.paging.idleIfLoading()) }
+    }
+
+    private fun keepShownProductsOrShowSkeleton() {
+        _uiState.update { state ->
+            val content = state.content
+            val loading = if (content is SearchContent.Loaded) {
+                content.copy(isRefreshing = true, paging = content.paging.idleIfLoadingOrFailed(), refreshFailure = null)
+            } else {
+                SearchContent.Loading
+            }
+            state.copy(content = loading)
+        }
+    }
+
     private suspend fun loadNextPage(query: String, page: Int) {
-        updateLoaded { it.copy(paging = Paging.Loading(page)) }
+        updateShownResults { it.copy(paging = Paging.Loading(page)) }
         when (val result = searchProducts(query, page)) {
-            is AppResult.Success -> updateLoaded { loaded ->
+            is AppResult.Success -> updateShownResults { loaded ->
                 loaded.copy(
-                    // Results can shift between page requests, so a page may repeat a row on screen;
-                    // the grid keys rows by id and two equal keys would crash it.
-                    products = (loaded.products + result.data.products.map { it.toUiModel() }).distinctBy { it.id },
+                    products = (loaded.products + result.data.products.map { it.toUiModel() }).withoutDuplicateProducts(),
                     paging = pagingFor(result.data.nextPage),
                 )
             }
 
-            is AppResult.Failure -> updateLoaded { it.copy(paging = Paging.Failed(page, result.error)) }
+            is AppResult.Failure -> updateShownResults { it.copy(paging = Paging.Failed(page, result.error)) }
         }
     }
 
-    /** Applies [transform] only while the content is Loaded; a query change in between makes it a no-op. */
-    private fun updateLoaded(transform: (SearchContent.Loaded) -> SearchContent.Loaded) {
+    private fun updateShownResults(transform: (SearchContent.Loaded) -> SearchContent.Loaded) {
         _uiState.update { state ->
             val content = state.content
             if (content is SearchContent.Loaded) state.copy(content = transform(content)) else state
@@ -198,9 +184,8 @@ internal class SearchViewModel @Inject constructor(
             SearchContent.Empty(query)
         } else {
             SearchContent.Loaded(
-                query = query,
-                // The same guard as a later page: a repeated row would crash the grid.
-                products = products.map { it.toUiModel() }.distinctBy { it.id },
+                searchedQuery = query,
+                products = products.map { it.toUiModel() }.withoutDuplicateProducts(),
                 paging = pagingFor(nextPage),
             )
         }
@@ -208,24 +193,23 @@ internal class SearchViewModel @Inject constructor(
     private companion object {
         const val KEY_QUERY = "query"
         const val FIRST_PAGE = 1
-        const val DEBOUNCE_MS = 300L
-        const val REFRESH_MIN_MS = 800L
+        const val TYPING_PAUSE_MS = 300L
+        const val MIN_REFRESH_SPINNER_MS = 800L
     }
 }
 
+private fun List<ProductUiModel>.withoutDuplicateProducts() = distinctBy { it.id }
+
 private fun pagingFor(nextPage: Int?): Paging = if (nextPage == null) Paging.End else Paging.Idle(nextPage)
 
-/** The load-more was cancelled, so the list may ask again; an error stays for the user to retry. */
-private fun Paging.loadCancelled(): Paging = if (this is Paging.Loading) Paging.Idle(nextPage) else this
+private fun Paging.idleIfLoading(): Paging = if (this is Paging.Loading) Paging.Idle(nextPage) else this
 
-/** Page 1 is coming with its own next page: a load or an error on this one makes way. */
-private fun Paging.idle(): Paging = when (this) {
+private fun Paging.idleIfLoadingOrFailed(): Paging = when (this) {
     is Paging.Loading -> Paging.Idle(nextPage)
     is Paging.Failed -> Paging.Idle(nextPage)
     is Paging.Idle, Paging.End -> this
 }
 
-/** Runs [block], then waits out whatever is left of [duration]. */
 private suspend fun <T> takingAtLeast(duration: Duration, block: suspend () -> T): T = coroutineScope {
     val minimum = launch { delay(duration) }
     block().also { minimum.join() }

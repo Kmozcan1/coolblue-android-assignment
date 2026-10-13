@@ -1,6 +1,7 @@
 package com.coolblue.assignment.search.ui.view
 
 import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -45,10 +47,8 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 
-/** Ask for the next page when the user is this many rows from the end. */
-private const val LOAD_MORE_THRESHOLD = 3
+private const val LOAD_MORE_ROWS_BEFORE_END = 3
 
-/** One column on phones, two or three on tablets and in landscape. The loading skeleton uses the same cells. */
 internal val ProductGridCells = GridCells.Adaptive(minSize = 400.dp)
 
 @Composable
@@ -63,42 +63,14 @@ internal fun ProductList(
     modifier: Modifier = Modifier,
 ) {
     val gridState = rememberLazyGridState()
-    val nearEnd by remember(gridState) {
-        derivedStateOf {
-            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            lastVisible >= gridState.layoutInfo.totalItemsCount - 1 - LOAD_MORE_THRESHOLD
-        }
-    }
-    // Re-evaluated when the user reaches the end and whenever the content changes: a page landing, a
-    // refined query replacing the rows (possibly with the same number of them), an error clearing.
-    // Repeat calls are harmless: the ViewModel ignores LoadMore while loading, refreshing, showing an
-    // error or on the last page.
-    LaunchedEffect(nearEnd, content) {
-        if (nearEnd) onLoadMore()
-    }
-    // When a refined query's rows land they start at the top. Keyed on the query the rows answer, not
-    // on refreshing ending, so typing a letter and deleting it again leaves the list where it was.
-    // The first value is skipped so a restored screen keeps its scroll position. requestScrollToItem
-    // rather than scrollToItem: the latter suspends on the scroll mutex and a finger-down drag holds it
-    // at a higher priority, which would cancel this collector for good.
-    val rowsQuery by rememberUpdatedState(content.query)
-    LaunchedEffect(gridState) {
-        snapshotFlow { rowsQuery }.drop(1).collect { gridState.requestScrollToItem(0) }
-    }
-    // The field above the list settles fully shown or hidden whenever the list stops: after a drag or a
-    // fling, but also after a mouse wheel or TalkBack scroll, which never fling.
-    LaunchedEffect(gridState, header) {
-        snapshotFlow { gridState.isScrollInProgress }.filter { !it }.collect { header.settle() }
-    }
-    // A drag on the list means the user is done typing: drop the field's focus, which also hides the keyboard.
+    LoadMoreNearEndEffect(gridState, content, onLoadMore)
+    ScrollToTopOnNewResultsEffect(gridState, content.searchedQuery)
+    SnapHeaderWhenScrollingStopsEffect(gridState, header)
+    HideKeyboardOnDragEffect(gridState)
+
     val focusManager = LocalFocusManager.current
     val inputModeManager = LocalInputModeManager.current
-    LaunchedEffect(gridState) {
-        gridState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().collect { focusManager.clearFocus() }
-    }
-
-    // Pulling takes a two-finger drag under TalkBack; this puts Refresh in each row's Actions menu.
-    val refreshAction = CustomAccessibilityAction(stringResource(R.string.refresh)) {
+    val refreshFromAccessibilityMenu = CustomAccessibilityAction(stringResource(R.string.refresh)) {
         gridState.requestScrollToItem(0)
         onRefresh()
         true
@@ -115,7 +87,7 @@ internal fun ProductList(
             PullToRefreshDefaults.Indicator(
                 state = pullState,
                 isRefreshing = isPullRefreshing,
-                color = MaterialTheme.colorScheme.secondary, // Coolblue orange, like the bar below
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
         },
@@ -123,74 +95,113 @@ internal fun ProductList(
         LazyVerticalGrid(
             columns = ProductGridCells,
             state = gridState,
-            // Inside the pull box, so dragging a half-pulled indicator back retracts it before the header moves.
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(header.scrollConnection)
-                .semantics { customActions = listOf(refreshAction) },
+                .semantics { customActions = listOf(refreshFromAccessibilityMenu) },
         ) {
-            // The rule sits above each cell, so in a multi-column line the rules align whatever the cell heights.
             items(content.products, key = { it.id }) { product ->
-                Column {
-                    HorizontalDivider()
+                CellWithDividerAbove {
                     ProductRow(
                         product = product,
                         onClick = {
-                            // A tap ends typing, like a drag. A keyboard user keeps focus on the row.
                             if (inputModeManager.inputMode == InputMode.Touch) focusManager.clearFocus()
                             onProductClick(product.id)
                         },
                     )
                 }
             }
-            when (val paging = content.paging) {
-                is Paging.Idle -> Unit
-                is Paging.Loading -> item(key = "loading") {
-                    Column {
-                        HorizontalDivider()
-                        ProductRowSkeleton()
-                    }
-                }
-                is Paging.Failed -> fullWidthItem(key = "error") {
-                    StatusMessage(
-                        title = stringResource(R.string.load_more_error),
-                        detail = stringResource(paging.error.messageRes()),
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        actionLabel = stringResource(R.string.retry),
-                        onAction = onRetry,
-                    )
-                }
-                Paging.End -> fullWidthItem(key = "end") {
-                    val count = content.products.size
-                    Text(
-                        text = appPluralString(R.plurals.list_end, count),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
-                    )
-                }
-            }
+            nextPageFooter(content.paging, productCount = content.products.size, onRetry = onRetry)
         }
-        // The rows belong to the previous query until the new ones land; the bar says a request is out.
-        if (isRefining) {
-            // Coolblue orange on a tinted track: the default track is Material's purple, and with
-            // animations off the bar is all track.
-            LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                color = MaterialTheme.colorScheme.secondary,
-                // Opaque, so the rows scrolling under the bar do not show through its track.
-                trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f).compositeOver(MaterialTheme.colorScheme.background),
+        if (isRefining) RefiningProgressBar()
+    }
+}
+
+@Composable
+private fun LoadMoreNearEndEffect(gridState: LazyGridState, content: SearchContent.Loaded, onLoadMore: () -> Unit) {
+    val isNearEnd by remember(gridState) {
+        derivedStateOf {
+            val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= gridState.layoutInfo.totalItemsCount - 1 - LOAD_MORE_ROWS_BEFORE_END
+        }
+    }
+    LaunchedEffect(isNearEnd, content) {
+        if (isNearEnd) onLoadMore()
+    }
+}
+
+@Composable
+private fun ScrollToTopOnNewResultsEffect(gridState: LazyGridState, searchedQuery: String) {
+    val latestSearchedQuery by rememberUpdatedState(searchedQuery)
+    LaunchedEffect(gridState) {
+        val newResults = snapshotFlow { latestSearchedQuery }.drop(1)
+        // Not scrollToItem: a drag holds the scroll mutex at a higher priority, which would cancel this collector for good.
+        newResults.collect { gridState.requestScrollToItem(0) }
+    }
+}
+
+@Composable
+private fun SnapHeaderWhenScrollingStopsEffect(gridState: LazyGridState, header: CollapsingHeaderState) {
+    LaunchedEffect(gridState, header) {
+        snapshotFlow { gridState.isScrollInProgress }.filter { !it }.collect { header.snapToShownOrHidden() }
+    }
+}
+
+@Composable
+private fun HideKeyboardOnDragEffect(gridState: LazyGridState) {
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(gridState) {
+        gridState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().collect { focusManager.clearFocus() }
+    }
+}
+
+private fun LazyGridScope.nextPageFooter(paging: Paging, productCount: Int, onRetry: () -> Unit) {
+    when (paging) {
+        is Paging.Idle -> Unit
+        is Paging.Loading -> item(key = "loading") {
+            CellWithDividerAbove { ProductRowSkeleton() }
+        }
+        is Paging.Failed -> fullWidthItem(key = "error") {
+            StatusMessage(
+                title = stringResource(R.string.load_more_error),
+                detail = stringResource(paging.error.messageRes()),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                actionLabel = stringResource(R.string.retry),
+                onAction = onRetry,
+            )
+        }
+        Paging.End -> fullWidthItem(key = "end") {
+            Text(
+                text = appPluralString(R.plurals.list_end, productCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
             )
         }
     }
 }
 
-/** A footer that spans every column, with the same rule above it as the product cells. */
 private fun LazyGridScope.fullWidthItem(key: String, content: @Composable () -> Unit) {
     item(key = key, span = { GridItemSpan(maxLineSpan) }) {
-        Column {
-            HorizontalDivider()
-            content()
-        }
+        CellWithDividerAbove(content)
     }
+}
+
+@Composable
+internal fun CellWithDividerAbove(content: @Composable () -> Unit) {
+    Column {
+        HorizontalDivider()
+        content()
+    }
+}
+
+@Composable
+private fun BoxScope.RefiningProgressBar() {
+    val orange = MaterialTheme.colorScheme.secondary
+    val opaqueOrangeTrack = orange.copy(alpha = 0.24f).compositeOver(MaterialTheme.colorScheme.background)
+    LinearProgressIndicator(
+        modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+        color = orange,
+        trackColor = opaqueOrangeTrack,
+    )
 }

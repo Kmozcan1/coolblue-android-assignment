@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -44,36 +43,29 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.coolblue.assignment.search.ui.R
 import com.coolblue.assignment.search.ui.mapper.messageRes
+import com.coolblue.assignment.search.ui.presentation.RefreshFailure
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import com.coolblue.assignment.search.ui.presentation.SearchUiAction
 import com.coolblue.assignment.search.ui.presentation.SearchUiState
 import kotlinx.coroutines.launch
 
-/** Where the empty and error blocks sit: under the field, anchored top-left like the rows. */
 private val StatusPadding = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
 
-/** Stateless: everything comes in through [uiState], everything goes out through [onAction]. */
+private const val SKELETON_ROWS_TO_FILL_A_TABLET = 12
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SearchScreen(
     uiState: SearchUiState,
     onAction: (SearchUiAction) -> Unit,
 ) {
-    // Which product's sheet is open. Screen-local on purpose: it is transient chrome over a product
-    // the Loaded content already holds, so it has no business in SearchUiState. Keyed on Loaded-ness:
-    // rotation keeps the ViewModel and so the sheet, but after process death the search restarts and
-    // a saved id must not reopen the sheet when its page is fetched again.
-    var openProductId by rememberSaveable(uiState.content is SearchContent.Loaded) { mutableStateOf<Int?>(null) }
+    val hasResults = uiState.content is SearchContent.Loaded
+    var openProductId by rememberSaveable(hasResults) { mutableStateOf<Int?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val headerState = rememberCollapsingHeaderState()
     val scope = rememberCoroutineScope()
-    // The field slides away only over a scrolled list. Typing brings it back (a mouse wheel or TalkBack scroll
-    // hides it without taking its focus), and so does anything that replaces the rows or is not a list.
-    val rowsQuery = (uiState.content as? SearchContent.Loaded)?.query
-    LaunchedEffect(uiState.query, rowsQuery) { headerState.show() }
+    ShowSearchFieldOnTypingOrNewResultsEffect(headerState, uiState)
 
-    // Edge-to-edge switches off the window's own keyboard resizing, so the keyboard is an inset here:
-    // the grid shrinks above it instead of scrolling under it.
     Scaffold(
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets.union(WindowInsets.ime),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -91,25 +83,17 @@ internal fun SearchScreen(
                     .onFocusChanged { if (it.hasFocus) scope.launch { headerState.show() } }
                     .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
             )
-            // A short fade between kinds of content (skeleton to rows, rows to empty). Keyed on the
-            // kind, so a new page appended to Loaded updates in place without animating.
             AnimatedContent(
                 targetState = uiState.content,
                 modifier = Modifier.fillMaxSize(),
-                contentKey = { it::class },
-                transitionSpec = {
-                    ContentTransform(
-                        targetContentEnter = fadeIn(tween(durationMillis = 200, easing = LinearOutSlowInEasing)),
-                        initialContentExit = fadeOut(tween(durationMillis = 150, easing = FastOutLinearInEasing)),
-                        sizeTransform = null,
-                    )
-                },
+                contentKey = { content -> content::class },
+                transitionSpec = { shortFade() },
                 label = "content",
             ) { content ->
                 when (content) {
                     SearchContent.Loading -> LoadingList()
                     is SearchContent.Empty -> StatusMessage(
-                        title = stringResource(R.string.search_empty, content.query),
+                        title = stringResource(R.string.search_empty, content.searchedQuery),
                         detail = stringResource(R.string.search_empty_hint),
                         modifier = Modifier.verticalScroll(rememberScrollState()).then(StatusPadding),
                     )
@@ -121,13 +105,13 @@ internal fun SearchScreen(
                     )
                     is SearchContent.Loaded -> ProductList(
                         content = content,
-                        isRefining = content.query != uiState.query,
+                        isRefining = content.searchedQuery != uiState.query,
                         header = headerState,
                         onProductClick = { openProductId = it },
                         onLoadMore = { onAction(SearchUiAction.LoadMore) },
                         onRetry = { onAction(SearchUiAction.Retry) },
                         onRefresh = {
-                            scope.launch { headerState.show() } // TalkBack's Refresh jumps to the top: the field comes too
+                            scope.launch { headerState.show() }
                             onAction(SearchUiAction.Refresh)
                         },
                     )
@@ -136,39 +120,54 @@ internal fun SearchScreen(
         }
     }
 
-    // Looked up when the sheet opens, so rows landing underneath cannot take it away.
-    val openProduct = remember(openProductId) {
+    val openedProduct = remember(openProductId) {
         (uiState.content as? SearchContent.Loaded)?.products?.firstOrNull { it.id == openProductId }
     }
-    // Missing when looked up again after a rotation (a refresh dropped it): forget it.
-    if (openProductId != null && openProduct == null) SideEffect { openProductId = null }
+    if (openProductId != null && openedProduct == null) SideEffect { openProductId = null }
 
-    // Not under an open sheet, where the snackbar would time out unseen.
     val refreshFailure = (uiState.content as? SearchContent.Loaded)?.refreshFailure
-    if (refreshFailure != null && openProduct == null) {
-        val message = stringResource(R.string.refresh_error, stringResource(refreshFailure.error.messageRes()))
-        val retryLabel = stringResource(R.string.retry)
-        LaunchedEffect(refreshFailure) {
-            // An action label alone would make it Indefinite.
-            val result = snackbarHostState.showSnackbar(message, retryLabel, duration = SnackbarDuration.Long)
-            onAction(SearchUiAction.RefreshFailureShown)
-            if (result == SnackbarResult.ActionPerformed) onAction(SearchUiAction.Refresh)
-        }
-    }
+    val isProductSheetOpen = openedProduct != null
+    if (refreshFailure != null && !isProductSheetOpen) RefreshFailureSnackbar(refreshFailure, snackbarHostState, onAction)
 
-    if (openProduct != null) {
+    if (openedProduct != null) {
         ModalBottomSheet(
             onDismissRequest = { openProductId = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            // The default comes out grey in the dark palette, whose sheet colour equals surfaceVariant.
+            // The default resolves to grey in the dark palette, whose sheet colour equals surfaceVariant.
             contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
-            ProductDetail(openProduct)
+            ProductDetail(openedProduct)
         }
     }
 }
 
-/** First page in flight: row-shaped placeholders in the same cells as the list, so nothing jumps when rows land. */
+@Composable
+private fun ShowSearchFieldOnTypingOrNewResultsEffect(header: CollapsingHeaderState, uiState: SearchUiState) {
+    val resultsQuery = (uiState.content as? SearchContent.Loaded)?.searchedQuery
+    LaunchedEffect(uiState.query, resultsQuery) { header.show() }
+}
+
+@Composable
+private fun RefreshFailureSnackbar(
+    refreshFailure: RefreshFailure,
+    snackbarHostState: SnackbarHostState,
+    onAction: (SearchUiAction) -> Unit,
+) {
+    val message = stringResource(R.string.refresh_error, stringResource(refreshFailure.error.messageRes()))
+    val retryLabel = stringResource(R.string.retry)
+    LaunchedEffect(refreshFailure) {
+        val result = snackbarHostState.showSnackbar(message, retryLabel, duration = SnackbarDuration.Long)
+        onAction(SearchUiAction.RefreshFailureShown)
+        if (result == SnackbarResult.ActionPerformed) onAction(SearchUiAction.Refresh)
+    }
+}
+
+private fun shortFade() = ContentTransform(
+    targetContentEnter = fadeIn(tween(durationMillis = 200, easing = LinearOutSlowInEasing)),
+    initialContentExit = fadeOut(tween(durationMillis = 150, easing = FastOutLinearInEasing)),
+    sizeTransform = null,
+)
+
 @Composable
 private fun LoadingList() {
     val label = stringResource(R.string.loading)
@@ -177,11 +176,8 @@ private fun LoadingList() {
         userScrollEnabled = false,
         modifier = Modifier.fillMaxSize().semantics { contentDescription = label },
     ) {
-        items(count = 12) { // enough to fill a tablet; the grid only composes what fits
-            Column {
-                HorizontalDivider()
-                ProductRowSkeleton()
-            }
+        items(count = SKELETON_ROWS_TO_FILL_A_TABLET) {
+            CellWithDividerAbove { ProductRowSkeleton() }
         }
     }
 }

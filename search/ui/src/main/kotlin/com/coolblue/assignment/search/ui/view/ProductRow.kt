@@ -59,14 +59,11 @@ import com.coolblue.assignment.search.ui.mapper.formatRating
 import com.coolblue.assignment.search.ui.model.ProductUiModel
 import java.util.Locale
 
-// Every CDN image is 300×750 on white with the product centred and filling the width. A 1:2 tile
-// crops the empty top and bottom tenths and still shows each product whole, bar the Pencil's ends.
 private val TileWidth = 84.dp
-private val TileHeight = 168.dp
+private val TileHeight = TileWidth * 2
 private val TileShape = RoundedCornerShape(8.dp)
 
-/** The row shows this many USPs; the detail sheet shows them all. */
-private const val ROW_USPS = 3
+private const val MAX_USPS_IN_ROW = 3
 
 @Composable
 internal fun ProductRow(
@@ -77,7 +74,6 @@ internal fun ProductRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            // clickable merges the descendants: one TalkBack node per product, "double-tap to show details".
             .clickable(onClickLabel = stringResource(R.string.show_details), onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -93,7 +89,7 @@ internal fun ProductRow(
             product.promoText?.let { PromoKicker(it, Modifier.padding(top = 2.dp)) }
             Rating(average = product.rating, reviewCount = product.reviewCount, modifier = Modifier.padding(top = 6.dp))
             Column(modifier = Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                product.usps.take(ROW_USPS).forEach { Usp(it, singleLine = true) }
+                product.usps.take(MAX_USPS_IN_ROW).forEach { Usp(it, singleLine = true) }
             }
             Price(priceCents = product.priceCents, listPriceCents = product.listPriceCents, modifier = Modifier.padding(top = 12.dp))
             if (product.nextDayDelivery) Delivery(Modifier.padding(top = 2.dp))
@@ -101,7 +97,6 @@ internal fun ProductRow(
     }
 }
 
-/** The bottom-sheet body: the same product, nothing clipped, every USP. */
 @Composable
 internal fun ProductDetail(
     product: ProductUiModel,
@@ -109,18 +104,16 @@ internal fun ProductDetail(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth() // so the tile centres in the sheet, not in a column as wide as the name
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
     ) {
-        // Twice the row tile. The source is 300 px wide, so this is as large as it goes before it softens.
-        // In a short window (phone landscape) the row size, or the name would start below the fold.
-        val compactHeight = LocalWindowInfo.current.containerDpSize.height < 480.dp
-        val scale = if (compactHeight) 1 else 2
+        val isShortScreen = LocalWindowInfo.current.containerDpSize.height < 480.dp
+        val tileScale = if (isShortScreen) 1 else 2
         ProductTile(
             imageUrl = product.imageUrl,
             modifier = Modifier
-                .size(TileWidth * scale, TileHeight * scale)
+                .size(TileWidth * tileScale, TileHeight * tileScale)
                 .align(Alignment.CenterHorizontally),
         )
         Text(
@@ -143,13 +136,13 @@ private fun ProductTile(imageUrl: String, modifier: Modifier = Modifier) {
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(imageUrl)
-            .crossfade(ValueAnimator.areAnimatorsEnabled()) // off with the system's animations
+            .crossfade(ValueAnimator.areAnimatorsEnabled())
             .build(),
-        contentDescription = null, // decorative: the name is read as text
+        contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = modifier
             .clip(TileShape)
-            .background(CoolblueColors.Plate)
+            .background(CoolblueColors.PhotoBackground)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, TileShape),
     )
 }
@@ -166,14 +159,13 @@ private fun PromoKicker(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun Rating(average: Double, reviewCount: Int, modifier: Modifier = Modifier) {
-    if (reviewCount == 0) return // not reviewed yet; "0,0" would read as the worst score
+    if (reviewCount == 0) return
     val locale = appLocale()
     val rating = formatRating(average, locale)
     val reviews = appPluralString(R.plurals.review_count, reviewCount)
-    // Read as one phrase with its meaning: the bare "9,1" would otherwise arrive without context.
-    val label = stringResource(R.string.rating_a11y, rating, reviews)
+    val spokenRating = stringResource(R.string.rating_a11y, rating, reviews)
     Row(
-        modifier = modifier.clearAndSetSemantics { text = label.spokenIn(locale) },
+        modifier = modifier.clearAndSetSemantics { text = spokenRating.spokenIn(locale) },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -215,7 +207,6 @@ private fun Usp(text: String, singleLine: Boolean) {
 @Composable
 private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Modifier) {
     val locale = appLocale()
-    // Wraps the old price to its own line when large text leaves no room beside the price.
     FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = formatPrice(priceCents, locale).spokenIn(locale),
@@ -224,8 +215,7 @@ private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Mo
         )
         if (listPriceCents != null) {
             val listPrice = formatPrice(listPriceCents, locale)
-            // The strike-through has no semantics; say what the figure is so it isn't read as a second price.
-            val wasLabel = stringResource(R.string.list_price_a11y, listPrice)
+            val spokenListPrice = stringResource(R.string.list_price_a11y, listPrice)
             Text(
                 text = listPrice,
                 style = MaterialTheme.typography.bodyMedium,
@@ -233,13 +223,12 @@ private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Mo
                 textDecoration = TextDecoration.LineThrough,
                 modifier = Modifier
                     .alignByBaseline()
-                    .clearAndSetSemantics { text = wasLabel.spokenIn(locale) },
+                    .clearAndSetSemantics { text = spokenListPrice.spokenIn(locale) },
             )
         }
     }
 }
 
-/** Tagged with its language, so TalkBack reads "1.079" as Dutch even when the phone's voice is English. */
 private fun String.spokenIn(locale: Locale) = AnnotatedString(this, SpanStyle(localeList = LocaleList(locale.toLanguageTag())))
 
 @Composable
@@ -253,13 +242,11 @@ private fun Delivery(modifier: Modifier = Modifier) {
     )
 }
 
-/** A row-shaped placeholder for a page in flight: the geometry of [ProductRow], no text, a slow pulse. */
 @Composable
 internal fun ProductRowSkeleton(modifier: Modifier = Modifier) {
-    // Read in the draw phase only (graphicsLayer below), so the pulse redraws without recomposing every frame.
-    val pulse = rememberInfiniteTransition(label = "skeleton").animateFloat(
+    val pulseAlpha = rememberInfiniteTransition(label = "skeleton").animateFloat(
         initialValue = 0.5f,
-        targetValue = 1f, // where it rests with animations off
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(durationMillis = 800, easing = LinearEasing), RepeatMode.Reverse),
         label = "pulse",
     )
@@ -268,7 +255,7 @@ internal fun ProductRowSkeleton(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 14.dp)
-            .graphicsLayer { alpha = pulse.value },
+            .graphicsLayer { alpha = pulseAlpha.value },
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(Modifier.size(TileWidth, TileHeight).background(bar, TileShape))

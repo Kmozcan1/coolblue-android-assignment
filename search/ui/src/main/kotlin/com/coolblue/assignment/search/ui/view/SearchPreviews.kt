@@ -35,7 +35,7 @@ private val macbook = iphone.copy(
     nextDayDelivery = false,
 )
 
-private val loaded = SearchContent.Loaded(query = "iphone", products = listOf(iphone, macbook), paging = Paging.Idle(2))
+private val loaded = SearchContent.Loaded(searchedQuery = "iphone", products = listOf(iphone, macbook), paging = Paging.Idle(2))
 
 @PreviewLightDark
 @Composable

@@ -4,62 +4,63 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-/** Brand colours, as published. */
 object CoolblueColors {
-    /** Coolblue blue. Only 3.2:1 against light paper, too light for text there: the dark primary and the light snackbar action. */
     val Blue = Color(0xFF0090E3)
 
-    /** The image CDN renders every product on pure white. The tile matches, so the photo's edge disappears. */
-    val Plate = Color(0xFFFFFFFF)
+    val PhotoBackground = Color(0xFFFFFFFF)
 }
 
-// Light palette. OKLCH, tinted toward the brand hue (245°): paper at 97.5 %, ink at 21 %.
-// Blue, orange and green are darkened until they pass 4.5:1 as text on paper.
+private val LightPaper = Color(0xFFF4F7FB)
+private val LightInk = Color(0xFF111920)
+private val DarkPaper = Color(0xFF090E12)
+private val DarkInk = Color(0xFFE7ECF0)
+
+private val TextSafeBlue = Color(0xFF006DC3)
+private val TextSafeOrange = Color(0xFFC84000)
+private val TextSafeGreen = Color(0xFF007900)
+
 internal val LightColors = lightColorScheme(
-    primary = Color(0xFF006DC3),
+    primary = TextSafeBlue,
     onPrimary = Color(0xFFFFFFFF),
-    secondary = Color(0xFFC84000),
-    tertiary = Color(0xFF007900),
-    background = Color(0xFFF4F7FB),
-    onBackground = Color(0xFF111920),
-    surface = Color(0xFFF4F7FB),
-    onSurface = Color(0xFF111920),
+    secondary = TextSafeOrange,
+    tertiary = TextSafeGreen,
+    background = LightPaper,
+    onBackground = LightInk,
+    surface = LightPaper,
+    onSurface = LightInk,
     surfaceVariant = Color(0xFFE9EDF2),
     onSurfaceVariant = Color(0xFF535C65),
-    surfaceContainerLowest = Color(0xFFF4F7FB),
-    surfaceContainerLow = Color(0xFFF4F7FB),
+    surfaceContainerLowest = LightPaper,
+    surfaceContainerLow = LightPaper,
     surfaceContainer = Color(0xFFE9EDF2),
     surfaceContainerHigh = Color(0xFFDAE0E6),
     surfaceContainerHighest = Color(0xFFDAE0E6),
     outline = Color(0xFFD2D8DE),
     outlineVariant = Color(0xFFD2D8DE),
-    // Inverse (the snackbar): the dark palette's paper, ink and blue. The blue passes 5.6:1 on that paper.
-    inverseSurface = Color(0xFF090E12),
-    inverseOnSurface = Color(0xFFE7ECF0),
+    inverseSurface = DarkPaper,
+    inverseOnSurface = DarkInk,
     inversePrimary = CoolblueColors.Blue,
 )
 
-// Dark palette: paper at 16 %, ink at 94 %. Accents lighten and lose chroma; the brand blue reads as text here.
 internal val DarkColors = darkColorScheme(
     primary = CoolblueColors.Blue,
-    onPrimary = Color(0xFF090E12),
+    onPrimary = DarkPaper,
     secondary = Color(0xFFFF9358),
     tertiary = Color(0xFF7CD775),
-    background = Color(0xFF090E12),
-    onBackground = Color(0xFFE7ECF0),
-    surface = Color(0xFF090E12),
-    onSurface = Color(0xFFE7ECF0),
+    background = DarkPaper,
+    onBackground = DarkInk,
+    surface = DarkPaper,
+    onSurface = DarkInk,
     surfaceVariant = Color(0xFF11171C),
     onSurfaceVariant = Color(0xFF98A0A7),
-    surfaceContainerLowest = Color(0xFF090E12),
+    surfaceContainerLowest = DarkPaper,
     surfaceContainerLow = Color(0xFF11171C),
     surfaceContainer = Color(0xFF11171C),
     surfaceContainerHigh = Color(0xFF1C2228),
     surfaceContainerHighest = Color(0xFF1C2228),
     outline = Color(0xFF272C31),
     outlineVariant = Color(0xFF272C31),
-    // Inverse (the snackbar): the light palette's paper, ink and text-safe blue (4.9:1).
-    inverseSurface = Color(0xFFF4F7FB),
-    inverseOnSurface = Color(0xFF111920),
-    inversePrimary = Color(0xFF006DC3),
+    inverseSurface = LightPaper,
+    inverseOnSurface = LightInk,
+    inversePrimary = TextSafeBlue,
 )
