@@ -30,7 +30,6 @@ import com.coolblue.assignment.search.ui.R
 import com.coolblue.assignment.search.ui.mapper.messageRes
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 
 /** Ask for the next page when the user is this many rows from the end. */
@@ -61,13 +60,14 @@ internal fun ProductList(
     LaunchedEffect(nearEnd, content) {
         if (nearEnd) onLoadMore()
     }
-    // When a refined query's rows land they start at the top. The first value is skipped so a
-    // restored screen keeps its scroll position. requestScrollToItem rather than scrollToItem: the
-    // latter suspends on the scroll mutex and a finger-down drag holds it at a higher priority, which
-    // would cancel this collector for good.
-    val refreshing by rememberUpdatedState(content.isRefreshing)
+    // When a refined query's rows land they start at the top. Keyed on the query the rows answer, not
+    // on refreshing ending, so typing a letter and deleting it again leaves the list where it was.
+    // The first value is skipped so a restored screen keeps its scroll position. requestScrollToItem
+    // rather than scrollToItem: the latter suspends on the scroll mutex and a finger-down drag holds it
+    // at a higher priority, which would cancel this collector for good.
+    val rowsQuery by rememberUpdatedState(content.query)
     LaunchedEffect(gridState) {
-        snapshotFlow { refreshing }.drop(1).filter { !it }.collect { gridState.requestScrollToItem(0) }
+        snapshotFlow { rowsQuery }.drop(1).collect { gridState.requestScrollToItem(0) }
     }
     // A drag on the list means the user is done typing: drop the field's focus, which also hides the keyboard.
     val focusManager = LocalFocusManager.current
