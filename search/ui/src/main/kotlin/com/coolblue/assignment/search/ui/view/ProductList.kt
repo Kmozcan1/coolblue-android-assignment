@@ -16,6 +16,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -92,10 +94,21 @@ internal fun ProductList(
         true
     }
 
+    val pullState = rememberPullToRefreshState()
+    val isPullRefreshing = content.isRefreshing && !isRefining
     PullToRefreshBox(
-        isRefreshing = content.isRefreshing && !isRefining,
+        isRefreshing = isPullRefreshing,
         onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
+        state = pullState,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullState,
+                isRefreshing = isPullRefreshing,
+                color = MaterialTheme.colorScheme.secondary, // Coolblue orange, like the bar below
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
     ) {
         LazyVerticalGrid(
             columns = ProductGridCells,
@@ -145,10 +158,12 @@ internal fun ProductList(
         }
         // The rows belong to the previous query until the new ones land; the bar says a request is out.
         if (isRefining) {
-            // A tinted track: the default is Material's purple, and with animations off the bar is all track.
+            // Coolblue orange on a tinted track: the default track is Material's purple, and with
+            // animations off the bar is all track.
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+                color = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f),
             )
         }
     }
