@@ -3,8 +3,8 @@ package com.coolblue.assignment.search.ui.presentation
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.coolblue.assignment.core.domain.result.AppResult
 import com.coolblue.assignment.search.domain.model.ProductPage
-import com.coolblue.assignment.search.domain.result.AppResult
 import com.coolblue.assignment.search.domain.usecase.SearchProductsUseCase
 import com.coolblue.assignment.search.ui.mapper.toUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel

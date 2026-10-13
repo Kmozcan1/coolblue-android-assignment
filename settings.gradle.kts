@@ -26,6 +26,7 @@ rootProject.name = "CoolblueAssignment"
 include(":app")
 include(":core:ui")
 include(":core:test")
+include(":core:domain")
 include(":search:domain")
 include(":core:network")
 include(":search:data")

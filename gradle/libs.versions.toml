@@ -74,5 +74,6 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 # Convention plugins from build-logic
 coolblue-android-application = { id = "coolblue.android.application" }
 coolblue-android-library = { id = "coolblue.android.library" }
+coolblue-android-hilt = { id = "coolblue.android.hilt" }
 coolblue-android-ui = { id = "coolblue.android.ui" }
 coolblue-kotlin-jvm = { id = "coolblue.kotlin.jvm" }

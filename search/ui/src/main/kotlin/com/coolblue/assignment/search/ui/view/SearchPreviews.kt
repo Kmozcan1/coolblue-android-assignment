@@ -2,8 +2,8 @@ package com.coolblue.assignment.search.ui.view
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.core.ui.theme.CoolblueTheme
-import com.coolblue.assignment.search.domain.result.AppError
 import com.coolblue.assignment.search.ui.model.ProductUiModel
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import com.coolblue.assignment.search.ui.presentation.SearchUiState

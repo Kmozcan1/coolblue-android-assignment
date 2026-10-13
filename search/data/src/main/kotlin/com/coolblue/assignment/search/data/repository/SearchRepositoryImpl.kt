@@ -1,11 +1,11 @@
 package com.coolblue.assignment.search.data.repository
 
+import com.coolblue.assignment.core.domain.result.AppError
+import com.coolblue.assignment.core.domain.result.AppResult
 import com.coolblue.assignment.search.data.api.SearchApi
 import com.coolblue.assignment.search.data.mapper.toDomain
 import com.coolblue.assignment.search.domain.model.ProductPage
 import com.coolblue.assignment.search.domain.repository.SearchRepository
-import com.coolblue.assignment.search.domain.result.AppError
-import com.coolblue.assignment.search.domain.result.AppResult
 import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import java.io.IOException

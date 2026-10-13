@@ -8,6 +8,7 @@ import org.gradle.kotlin.dsl.dependencies
 class AndroidUiConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         pluginManager.apply("coolblue.android.library")
+        pluginManager.apply("coolblue.android.hilt")
         pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
 
         extensions.configure<LibraryExtension> {
@@ -27,7 +28,6 @@ class AndroidUiConventionPlugin : Plugin<Project> {
             "implementation"(libs.lib("androidx-lifecycle-viewmodel-compose"))
             "implementation"(libs.lib("hilt-lifecycle-viewmodel-compose"))
             "implementation"(libs.lib("coil-compose"))
-            "implementation"(libs.lib("coil-network-okhttp"))
             "implementation"(project(":core:ui"))
 
             "testImplementation"(libs.lib("junit"))

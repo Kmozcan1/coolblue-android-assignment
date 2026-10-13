@@ -1,6 +1,9 @@
 package com.coolblue.assignment.search.ui.model
 
+import androidx.compose.runtime.Immutable
+
 /** A product ready to draw: prices and rating are already text. */
+@Immutable
 data class ProductUiModel(
     val id: Int,
     val name: String,

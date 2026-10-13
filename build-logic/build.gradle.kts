@@ -20,6 +20,10 @@ gradlePlugin {
             id = "coolblue.android.library"
             implementationClass = "AndroidLibraryConventionPlugin"
         }
+        register("androidHilt") {
+            id = "coolblue.android.hilt"
+            implementationClass = "AndroidHiltConventionPlugin"
+        }
         register("androidUi") {
             id = "coolblue.android.ui"
             implementationClass = "AndroidUiConventionPlugin"

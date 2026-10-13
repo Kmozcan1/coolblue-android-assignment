@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.coolblue.android.library)
+    alias(libs.plugins.coolblue.android.hilt)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -8,6 +9,7 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.domain)
     implementation(projects.search.domain)
     implementation(projects.core.network)
     implementation(libs.kotlinx.serialization.json)

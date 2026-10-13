@@ -1,4 +1,4 @@
-package com.coolblue.assignment.search.domain.result
+package com.coolblue.assignment.core.domain.result
 
 /** Why a call failed, in terms the UI can act on. Never carries the exception: it would break equality. */
 sealed interface AppError {

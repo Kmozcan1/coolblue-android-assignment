@@ -1,7 +1,7 @@
 package com.coolblue.assignment.search.ui.mapper
 
 import androidx.annotation.StringRes
-import com.coolblue.assignment.search.domain.result.AppError
+import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.search.ui.R
 
 @StringRes

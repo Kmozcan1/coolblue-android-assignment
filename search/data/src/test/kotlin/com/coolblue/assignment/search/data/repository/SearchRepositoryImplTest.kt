@@ -1,10 +1,10 @@
 package com.coolblue.assignment.search.data.repository
 
+import com.coolblue.assignment.core.domain.result.AppError
+import com.coolblue.assignment.core.domain.result.AppResult
 import com.coolblue.assignment.core.network.NetworkModule
 import com.coolblue.assignment.search.data.api.SearchApi
 import com.coolblue.assignment.search.data.api.SearchResponseDto
-import com.coolblue.assignment.search.domain.result.AppError
-import com.coolblue.assignment.search.domain.result.AppResult
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest

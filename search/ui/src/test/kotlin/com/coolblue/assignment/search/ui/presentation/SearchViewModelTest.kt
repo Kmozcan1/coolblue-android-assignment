@@ -2,11 +2,11 @@ package com.coolblue.assignment.search.ui.presentation
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.coolblue.assignment.core.domain.result.AppError
+import com.coolblue.assignment.core.domain.result.AppResult
 import com.coolblue.assignment.core.test.MainDispatcherRule
 import com.coolblue.assignment.search.domain.model.Product
 import com.coolblue.assignment.search.domain.model.ProductPage
-import com.coolblue.assignment.search.domain.result.AppError
-import com.coolblue.assignment.search.domain.result.AppResult
 import com.coolblue.assignment.search.domain.usecase.SearchProductsUseCase
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery

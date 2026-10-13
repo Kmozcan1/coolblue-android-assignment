@@ -1,15 +1,18 @@
 package com.coolblue.assignment.search.ui.presentation
 
-import com.coolblue.assignment.search.domain.result.AppError
+import androidx.compose.runtime.Immutable
+import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.search.ui.model.ProductUiModel
 
 /** Everything the screen shows. One object, so the query and the content can never disagree. */
+@Immutable
 data class SearchUiState(
     val query: String = "",
     val content: SearchContent = SearchContent.Idle,
 )
 
 /** What the area under the search field shows. Exactly one of these at a time. */
+@Immutable
 sealed interface SearchContent {
     /** Blank query: invite the user to type. */
     data object Idle : SearchContent

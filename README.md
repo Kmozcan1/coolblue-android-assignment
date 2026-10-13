@@ -41,17 +41,19 @@ split into three layers, plus a few shared modules.
 ```
 app             Application (also Coil's image loader), MainActivity, the theme wrapped around the one screen
 build-logic     Gradle convention plugins, so each module's build file is about ten lines
+core/domain     AppResult and AppError, the result contract every repository returns
 core/network    OkHttp, kotlinx-serialization and Retrofit, provided through Hilt
 core/ui         Material 3 theme in Coolblue colours
 core/test       MainDispatcherRule, shared by ViewModel tests
-search/domain   Product, ProductPage, AppResult, AppError, SearchRepository, SearchProductsUseCase
+search/domain   Product, ProductPage, SearchRepository, SearchProductsUseCase
 search/data     Retrofit API, DTOs, DTO-to-domain mapper, SearchRepositoryImpl, Hilt bindings
 search/ui       SearchViewModel, UiState, UiAction, composables, UI model and its mapper
 ```
 
 Dependencies point inwards: `search/ui` and `search/data` both depend on `search/domain`,
-never on each other. `search/domain` is a plain Kotlin module with no Android dependency.
-`app` is the only module that sees everything, which is what lets Hilt build the object graph.
+never on each other, and `search/domain` depends only on `core/domain`. Both are plain Kotlin
+modules with no Android dependency. `app` is the only module that sees everything, which is
+what lets Hilt build the object graph.
 
 ### Data flow
 
@@ -155,9 +157,12 @@ tests.
 **Base URL as a constant.** There is one environment. With a second one it becomes a
 `buildConfigField` per flavour.
 
-**Eight modules for one screen.** Heavier than the screen needs, but it shows how the project
-would grow: a second feature is three more modules and three lines in `settings.gradle.kts`.
-The convention plugins in `build-logic` keep each module's build file small.
+**Nine modules for one screen.** Heavier than the screen needs, but it shows how the project
+would grow: a second feature is three more modules and three lines in `settings.gradle.kts`,
+and its repository returns the same `AppResult` from `core/domain` without depending on
+`search`. The convention plugins in `build-logic` keep each module's build file small. Hilt is
+its own plugin, applied only by the modules that have bindings or injection points, so
+`core/ui` carries no DI.
 
 ## Tests
 

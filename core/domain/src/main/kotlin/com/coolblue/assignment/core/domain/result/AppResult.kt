@@ -1,4 +1,4 @@
-package com.coolblue.assignment.search.domain.result
+package com.coolblue.assignment.core.domain.result
 
 /** Success or failure of a repository call. Used instead of exceptions so every caller handles both branches. */
 sealed interface AppResult<out T> {

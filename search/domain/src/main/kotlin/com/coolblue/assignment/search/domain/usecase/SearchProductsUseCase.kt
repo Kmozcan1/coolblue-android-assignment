@@ -1,9 +1,9 @@
 package com.coolblue.assignment.search.domain.usecase
 
+import com.coolblue.assignment.core.domain.result.AppResult
 import com.coolblue.assignment.search.domain.model.Product
 import com.coolblue.assignment.search.domain.model.ProductPage
 import com.coolblue.assignment.search.domain.repository.SearchRepository
-import com.coolblue.assignment.search.domain.result.AppResult
 import javax.inject.Inject
 
 /**
