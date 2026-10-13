@@ -14,8 +14,8 @@ Kotlin, Jetpack Compose, one screen.
 - **36 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
-From [Architecture](#architecture) down is optional detail. Engineers: start at
-[One request pipeline](#one-request-pipeline), then [Trade-offs](#trade-offs).
+From [Architecture](#architecture) down is optional detail. Engineers: start with its
+diagram, then [Trade-offs](#trade-offs).
 
 ## Run it
 
@@ -47,6 +47,9 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 ## Architecture
 
 ![How the app is built: nine modules with dependencies pointing inwards, a search going down to the API and back as one screen state, and one request at a time through collectLatest](docs/architecture.svg)
+
+<details>
+<summary>The same in text: modules, data flow, one request pipeline</summary>
 
 Multi-module Clean Architecture with MVVM and unidirectional data flow. One feature, `search`,
 split into three layers, plus a few shared modules.
@@ -106,6 +109,8 @@ The debounced query asks for page 1. `Retry` and `LoadMore` push a page number i
 `pageRequests`. `collectLatest` cancels the previous load whenever a new request arrives, so at
 most one request is ever in flight for the screen and a slow, stale response can never overwrite
 a newer state. There are no job fields to cancel by hand.
+
+</details>
 
 ## Libraries and why
 
