@@ -178,6 +178,18 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `given page 2 repeats a row from page 1, when LoadMore, then that row is shown once`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } returns page(2, products = listOf(product(1), product(2)))
+
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(1, 2).inOrder()
+    }
+
+    @Test
     fun `given the last page on screen, when LoadMore, then nothing is requested`() = runTest {
         coEvery { searchProducts("iphone", 1) } returns page(1, pageCount = 1)
         val viewModel = viewModel()

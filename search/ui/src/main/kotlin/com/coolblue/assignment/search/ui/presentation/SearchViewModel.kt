@@ -145,7 +145,9 @@ internal class SearchViewModel @Inject constructor(
         when (val result = searchProducts(query, page)) {
             is AppResult.Success -> updateLoaded { loaded ->
                 loaded.copy(
-                    products = loaded.products + result.data.products.map { it.toUiModel() },
+                    // Results can shift between page requests, so a page may repeat a row on screen;
+                    // the grid keys rows by id and two equal keys would crash it.
+                    products = (loaded.products + result.data.products.map { it.toUiModel() }).distinctBy { it.id },
                     nextPage = result.data.nextPage,
                     isLoadingMore = false,
                 )
