@@ -10,8 +10,10 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Coolblue">
+        <!-- A language switch recomposes the screen in place: recreating it flashed a black frame. -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="locale|layoutDirection"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
