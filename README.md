@@ -171,7 +171,7 @@ was reviewed, and the commit history reads as the build sequence.
 - A navigation library: one screen.
 - ktlint or detekt: valuable on a team, noise in an assignment of this size.
 - Compose UI tests: the screen is stateless and its logic lives in the tested ViewModel.
-- Release build configuration: nothing here ships.
+- Release signing: nothing here ships.
 - An offline cache: search-as-you-type results are live by nature, and the API is a mock.
   A load failure shows in place with Retry; the rows already on screen stay.
 - Crash reporting: nothing ships, so there is no backend to report to. The repository logs
