@@ -37,12 +37,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -55,6 +56,7 @@ import com.coolblue.assignment.search.ui.R
 import com.coolblue.assignment.search.ui.mapper.formatPrice
 import com.coolblue.assignment.search.ui.mapper.formatRating
 import com.coolblue.assignment.search.ui.model.ProductUiModel
+import java.util.Locale
 
 // Every CDN image is 300×750 on white with the product centred and filling the width. A 1:2 tile
 // crops the empty top and bottom tenths and still shows each product whole, bar the Pencil's ends.
@@ -163,12 +165,13 @@ private fun PromoKicker(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun Rating(average: Double, reviewCount: Int, modifier: Modifier = Modifier) {
-    val rating = formatRating(average, currentAppLanguage().locale)
-    val reviews = pluralStringResource(R.plurals.review_count, reviewCount, reviewCount)
+    val locale = currentAppLanguage().locale
+    val rating = formatRating(average, locale)
+    val reviews = appPluralString(R.plurals.review_count, reviewCount)
     // Read as one phrase with its meaning: the bare "9,1" would otherwise arrive without context.
     val label = stringResource(R.string.rating_a11y, rating, reviews)
     Row(
-        modifier = modifier.clearAndSetSemantics { contentDescription = label },
+        modifier = modifier.clearAndSetSemantics { text = label.spokenIn(locale) },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -213,7 +216,7 @@ private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Mo
     // Wraps the old price to its own line when large text leaves no room beside the price.
     FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = formatPrice(priceCents, locale),
+            text = formatPrice(priceCents, locale).spokenIn(locale),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.alignByBaseline(),
         )
@@ -228,11 +231,14 @@ private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Mo
                 textDecoration = TextDecoration.LineThrough,
                 modifier = Modifier
                     .alignByBaseline()
-                    .semantics { contentDescription = wasLabel },
+                    .clearAndSetSemantics { text = wasLabel.spokenIn(locale) },
             )
         }
     }
 }
+
+/** Tagged with its language, so TalkBack reads "1.079" as Dutch even when the phone's voice is English. */
+private fun String.spokenIn(locale: Locale) = AnnotatedString(this, SpanStyle(localeList = LocaleList(locale.toLanguageTag())))
 
 @Composable
 private fun Delivery(modifier: Modifier = Modifier) {

@@ -1,5 +1,6 @@
 <resources>
     <style name="Theme.Coolblue" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">#FF090E12</item> <!-- DarkColors.background -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 </resources>

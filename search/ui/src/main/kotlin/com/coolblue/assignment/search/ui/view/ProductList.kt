@@ -25,8 +25,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -79,6 +80,7 @@ internal fun ProductList(
     }
     // A drag on the list means the user is done typing: drop the field's focus, which also hides the keyboard.
     val focusManager = LocalFocusManager.current
+    val inputModeManager = LocalInputModeManager.current
     LaunchedEffect(gridState) {
         gridState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().collect { focusManager.clearFocus() }
     }
@@ -104,7 +106,14 @@ internal fun ProductList(
             items(content.products, key = { it.id }) { product ->
                 Column {
                     HorizontalDivider()
-                    ProductRow(product = product, onClick = { onProductClick(product.id) })
+                    ProductRow(
+                        product = product,
+                        onClick = {
+                            // A tap ends typing, like a drag. A keyboard user keeps focus on the row.
+                            if (inputModeManager.inputMode == InputMode.Touch) focusManager.clearFocus()
+                            onProductClick(product.id)
+                        },
+                    )
                 }
             }
             when {
@@ -126,7 +135,7 @@ internal fun ProductList(
                 content.nextPage == null -> fullWidthItem(key = "end") {
                     val count = content.products.size
                     Text(
-                        text = pluralStringResource(R.plurals.list_end, count, count),
+                        text = appPluralString(R.plurals.list_end, count),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),

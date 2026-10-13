@@ -9,9 +9,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
@@ -80,14 +82,16 @@ internal fun SearchScreen(
                 .padding(padding),
         ) {
             Row(
-                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)
+                    .height(IntrinsicSize.Min), // the toggle matches the field, which grows with the font size
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SearchField(
                     query = uiState.query,
                     onQueryChange = {
-                        openProductId = null
+                        languagesExpanded = false
                         onAction(SearchUiAction.QueryChanged(it))
                     },
                     modifier = Modifier.weight(1f),

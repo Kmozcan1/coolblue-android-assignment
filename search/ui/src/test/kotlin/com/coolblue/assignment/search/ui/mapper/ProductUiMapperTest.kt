@@ -46,6 +46,12 @@ class ProductUiMapperTest {
     }
 
     @Test
+    fun `given 2246 reviews, then the count is grouped like the language groups it`() {
+        assertThat(formatCount(2246, dutch)).isEqualTo("2.246")
+        assertThat(formatCount(2246, english)).isEqualTo("2,246")
+    }
+
+    @Test
     fun `given a 9_1 average, then the rating uses the language's decimal mark`() {
         assertThat(formatRating(9.1, dutch)).isEqualTo("9,1")
         assertThat(formatRating(9.1, english)).isEqualTo("9.1")

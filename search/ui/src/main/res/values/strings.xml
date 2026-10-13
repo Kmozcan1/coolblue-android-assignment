@@ -4,6 +4,8 @@
     <string name="language_current">Language: %1$s</string>
     <string name="languages_show">Show languages</string>
     <string name="languages_hide">Hide languages</string>
+    <string name="languages_expanded">Expanded</string>
+    <string name="languages_collapsed">Collapsed</string>
     <string name="search_hint">Search for a product</string>
     <string name="search_clear">Clear search</string>
     <string name="loading">Loading products</string>
@@ -22,10 +24,10 @@
     <string name="list_price_a11y">Was %1$s</string>
     <plurals name="list_end">
         <item quantity="one">That’s the only product</item>
-        <item quantity="other">You’ve seen all %d products</item>
+        <item quantity="other">You’ve seen all %s products</item>
     </plurals>
     <plurals name="review_count">
-        <item quantity="one">%d review</item>
-        <item quantity="other">%d reviews</item>
+        <item quantity="one">%s review</item>
+        <item quantity="other">%s reviews</item>
     </plurals>
 </resources>

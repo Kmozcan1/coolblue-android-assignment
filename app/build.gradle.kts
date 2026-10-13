@@ -16,6 +16,13 @@ android {
         localeFilters += listOf("en", "nl")
         generateLocaleConfig = true
     }
+
+    // The in-app switch needs both languages on every device, so a Play bundle must not split them off.
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
 }
 
 dependencies {

@@ -2,8 +2,11 @@ package com.coolblue.assignment.search.ui.view
 
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -124,7 +127,7 @@ private fun SearchScreenDutchPreview() {
 private fun LanguageTogglePreview() {
     CoolblueTheme {
         Surface {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.height(TextFieldDefaults.MinHeight), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 LanguageToggle(AppLanguage.English, expanded = false, onExpandedChange = {}, onSelect = {})
                 LanguageToggle(AppLanguage.Dutch, expanded = true, onExpandedChange = {}, onSelect = {})
             }

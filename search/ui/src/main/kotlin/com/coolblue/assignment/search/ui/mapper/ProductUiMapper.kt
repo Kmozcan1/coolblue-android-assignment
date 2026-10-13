@@ -27,6 +27,9 @@ internal fun Product.toUiModel(): ProductUiModel = ProductUiModel(
 internal fun formatPrice(cents: Int, locale: Locale): String =
     NumberFormat.getCurrencyInstance(locale).apply { currency = Euro }.format(cents / 100.0)
 
+/** 2246 → "2.246" in Dutch, "2,246" in English. */
+internal fun formatCount(count: Int, locale: Locale): String = NumberFormat.getIntegerInstance(locale).format(count)
+
 /** 9.1 → "9,1" in Dutch, "9.1" in English. */
 internal fun formatRating(average: Double, locale: Locale): String =
     NumberFormat.getNumberInstance(locale).apply {

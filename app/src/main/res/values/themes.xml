@@ -3,5 +3,8 @@
          (and the system splash) in the same background Compose will draw, so nothing flashes. -->
     <style name="Theme.Coolblue" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">#FFF4F7FB</item> <!-- LightColors.background -->
+        <!-- The launch window, before enableEdgeToEdge: no grey AppCompat bar, dark icons on light paper. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **45 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **46 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -39,7 +39,7 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
 - Pulling the list down fetches it again.
 - Dutch on a Dutch phone, English otherwise. The flag next to the search field switches, and
-  prices and ratings follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
+  prices, ratings and counts follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when it is higher than the current one)
   and the next-day delivery promise.
@@ -155,7 +155,7 @@ a newer state. There are no job fields to cancel by hand.
 | search/domain | `ProductPageTest` | next page from page count |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through |
-| search/ui | `ProductUiMapperTest` | list price rule, price and rating formatting in Dutch and English |
+| search/ui | `ProductUiMapperTest` | list price rule, price, rating and count formatting in Dutch and English |
 | search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with

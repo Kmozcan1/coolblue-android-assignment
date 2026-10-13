@@ -3,6 +3,8 @@
     <string name="language_current">Taal: %1$s</string>
     <string name="languages_show">Talen tonen</string>
     <string name="languages_hide">Talen verbergen</string>
+    <string name="languages_expanded">Uitgevouwen</string>
+    <string name="languages_collapsed">Samengevouwen</string>
     <string name="search_hint">Zoek een product</string>
     <string name="search_clear">Zoekopdracht wissen</string>
     <string name="loading">Producten laden</string>
@@ -21,10 +23,10 @@
     <string name="list_price_a11y">Eerst %1$s</string>
     <plurals name="list_end">
         <item quantity="one">Dit is het enige product</item>
-        <item quantity="other">Je hebt alle %d producten gezien</item>
+        <item quantity="other">Je hebt alle %s producten gezien</item>
     </plurals>
     <plurals name="review_count">
-        <item quantity="one">%d review</item>
-        <item quantity="other">%d reviews</item>
+        <item quantity="one">%s review</item>
+        <item quantity="other">%s reviews</item>
     </plurals>
 </resources>
