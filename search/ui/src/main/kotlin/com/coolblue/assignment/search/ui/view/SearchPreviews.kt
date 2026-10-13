@@ -2,14 +2,8 @@ package com.coolblue.assignment.search.ui.view
 
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import androidx.compose.ui.unit.dp
 import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.core.ui.theme.CoolblueTheme
 import com.coolblue.assignment.search.ui.model.ProductUiModel
@@ -69,68 +63,55 @@ private fun ProductRowSkeletonPreview() {
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadingPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Loading), onAction = {}, onLanguageSelected = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Loading), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenEmptyPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("xyz", SearchContent.Empty("xyz")), onAction = {}, onLanguageSelected = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("xyz", SearchContent.Empty("xyz")), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenErrorPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Error(AppError.Network)), onAction = {}, onLanguageSelected = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Error(AppError.Network)), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadedPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}, onLanguageSelected = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenRefreshingPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone x", loaded.copy(isRefreshing = true)), onAction = {}, onLanguageSelected = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone x", loaded.copy(isRefreshing = true)), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenEndPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(nextPage = null)), onAction = {}, onLanguageSelected = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(nextPage = null)), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadingMorePreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(isLoadingMore = true)), onAction = {}, onLanguageSelected = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(isLoadingMore = true)), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadMoreErrorPreview() {
     CoolblueTheme {
-        SearchScreen(SearchUiState("iphone", loaded.copy(loadMoreError = AppError.Server(500))), onAction = {}, onLanguageSelected = {})
+        SearchScreen(SearchUiState("iphone", loaded.copy(loadMoreError = AppError.Server(500))), onAction = {})
     }
 }
 
 @Preview(locale = "nl")
 @Composable
 private fun SearchScreenDutchPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}, onLanguageSelected = {}) }
-}
-
-@PreviewLightDark
-@Composable
-private fun LanguageTogglePreview() {
-    CoolblueTheme {
-        Surface {
-            Row(Modifier.height(TextFieldDefaults.MinHeight), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LanguageToggle(AppLanguage.English, expanded = false, onExpandedChange = {}, onSelect = {})
-                LanguageToggle(AppLanguage.Dutch, expanded = true, onExpandedChange = {}, onSelect = {})
-            }
-        }
-    }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}) }
 }

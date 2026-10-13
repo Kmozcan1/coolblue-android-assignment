@@ -7,15 +7,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.coolblue.assignment.search.ui.presentation.SearchViewModel
 import com.coolblue.assignment.search.ui.view.SearchScreen
 
-/** The only composable that knows the ViewModel exists. [onLanguageSelected] gets a tag such as "nl". */
+/** The only composable that knows the ViewModel exists. */
 @Composable
-fun SearchRoute(onLanguageSelected: (languageTag: String) -> Unit) {
+fun SearchRoute() {
     val viewModel: SearchViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    SearchScreen(
-        uiState = uiState,
-        onAction = viewModel::onAction,
-        onLanguageSelected = { onLanguageSelected(it.tag) },
-    )
+    SearchScreen(uiState = uiState, onAction = viewModel::onAction)
 }

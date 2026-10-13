@@ -1,10 +1,5 @@
 <resources>
     <string name="language_tag">nl</string>
-    <string name="language_current">Taal: %1$s</string>
-    <string name="languages_show">Talen tonen</string>
-    <string name="languages_hide">Talen verbergen</string>
-    <string name="languages_expanded">Uitgevouwen</string>
-    <string name="languages_collapsed">Samengevouwen</string>
     <string name="search_hint">Zoek een product</string>
     <string name="search_clear">Zoekopdracht wissen</string>
     <string name="loading">Producten laden</string>

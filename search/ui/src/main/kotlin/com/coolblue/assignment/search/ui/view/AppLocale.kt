@@ -12,21 +12,9 @@ import com.coolblue.assignment.search.ui.R
 import com.coolblue.assignment.search.ui.mapper.formatCount
 import java.util.Locale
 
-/** The languages the app is translated into. Each one names itself, as language pickers do. */
-internal enum class AppLanguage(val tag: String, val flag: String, val nativeName: String) {
-    English("en", "🇬🇧", "English"),
-    Dutch("nl", "🇳🇱", "Nederlands"),
-    ;
-
-    val locale: Locale get() = Locale.forLanguageTag(tag)
-}
-
-/** The language the strings resolved to: the user's pick, else Dutch on a Dutch phone and English otherwise. */
+/** The language the strings resolved to: Dutch on a Dutch phone, or when picked in Android 13+ settings; English otherwise. */
 @Composable
-internal fun currentAppLanguage(): AppLanguage {
-    val tag = stringResource(R.string.language_tag)
-    return AppLanguage.entries.first { it.tag == tag }
-}
+internal fun appLocale(): Locale = Locale.forLanguageTag(stringResource(R.string.language_tag))
 
 /**
  * A plural in the app's language, count included. pluralStringResource follows the phone's language,
@@ -37,7 +25,7 @@ internal fun currentAppLanguage(): AppLanguage {
 internal fun appPluralString(@PluralsRes id: Int, count: Int): String {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
-    val locale = currentAppLanguage().locale
+    val locale = appLocale()
     val resources = remember(context, configuration, locale) {
         context.createConfigurationContext(Configuration(configuration).apply { setLocale(locale) }).resources
     }

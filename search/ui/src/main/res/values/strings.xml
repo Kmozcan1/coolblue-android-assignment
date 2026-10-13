@@ -1,11 +1,6 @@
 <resources>
     <!-- Which translation this is, so numbers are formatted in the same language as the words. -->
     <string name="language_tag">en</string>
-    <string name="language_current">Language: %1$s</string>
-    <string name="languages_show">Show languages</string>
-    <string name="languages_hide">Hide languages</string>
-    <string name="languages_expanded">Expanded</string>
-    <string name="languages_collapsed">Collapsed</string>
     <string name="search_hint">Search for a product</string>
     <string name="search_clear">Clear search</string>
     <string name="loading">Loading products</string>

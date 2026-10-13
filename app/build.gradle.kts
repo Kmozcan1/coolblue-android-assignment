@@ -17,7 +17,7 @@ android {
         generateLocaleConfig = true
     }
 
-    // The in-app switch needs both languages on every device, so a Play bundle must not split them off.
+    // Android 13+ lets users pick the app's language in system settings: ship both, so the pick finds its strings.
     bundle {
         language {
             enableSplit = false
@@ -27,7 +27,6 @@ android {
 
 dependencies {
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.appcompat) // per-app language before Android 13
     implementation(libs.coil.core)
     implementation(libs.coil.network.okhttp)
 

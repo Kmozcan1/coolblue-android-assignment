@@ -7,13 +7,9 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
@@ -39,7 +35,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -54,13 +49,12 @@ import com.coolblue.assignment.search.ui.presentation.SearchUiState
 /** Where the empty and error blocks sit: under the field, anchored top-left like the rows. */
 private val StatusPadding = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
 
-/** Stateless: everything comes in through [uiState]; searches go out through [onAction], a language through [onLanguageSelected]. */
+/** Stateless: everything comes in through [uiState], everything goes out through [onAction]. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SearchScreen(
     uiState: SearchUiState,
     onAction: (SearchUiAction) -> Unit,
-    onLanguageSelected: (AppLanguage) -> Unit,
 ) {
     // Which product's sheet is open. Screen-local on purpose: it is transient chrome over a product
     // the Loaded content already holds, so it has no business in SearchUiState. Keyed on Loaded-ness:
@@ -68,7 +62,6 @@ internal fun SearchScreen(
     // a saved id must not reopen the sheet when its page is fetched again.
     var openProductId by rememberSaveable(uiState.content is SearchContent.Loaded) { mutableStateOf<Int?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-    var languagesExpanded by rememberSaveable { mutableStateOf(false) }
 
     // Edge-to-edge switches off the window's own keyboard resizing, so the keyboard is an inset here:
     // the grid shrinks above it instead of scrolling under it.
@@ -81,28 +74,11 @@ internal fun SearchScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            Row(
-                modifier = Modifier
-                    .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)
-                    .height(IntrinsicSize.Min), // the toggle matches the field, which grows with the font size
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SearchField(
-                    query = uiState.query,
-                    onQueryChange = {
-                        languagesExpanded = false
-                        onAction(SearchUiAction.QueryChanged(it))
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                LanguageToggle(
-                    current = currentAppLanguage(),
-                    expanded = languagesExpanded,
-                    onExpandedChange = { languagesExpanded = it },
-                    onSelect = onLanguageSelected,
-                )
-            }
+            SearchField(
+                query = uiState.query,
+                onQueryChange = { onAction(SearchUiAction.QueryChanged(it)) },
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
+            )
             // A short fade between kinds of content (skeleton to rows, rows to empty). Keyed on the
             // kind, so a new page appended to Loaded updates in place without animating.
             AnimatedContent(

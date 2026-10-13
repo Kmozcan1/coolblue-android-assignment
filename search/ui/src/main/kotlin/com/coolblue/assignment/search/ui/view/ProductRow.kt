@@ -165,7 +165,7 @@ private fun PromoKicker(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun Rating(average: Double, reviewCount: Int, modifier: Modifier = Modifier) {
-    val locale = currentAppLanguage().locale
+    val locale = appLocale()
     val rating = formatRating(average, locale)
     val reviews = appPluralString(R.plurals.review_count, reviewCount)
     // Read as one phrase with its meaning: the bare "9,1" would otherwise arrive without context.
@@ -212,7 +212,7 @@ private fun Usp(text: String, singleLine: Boolean) {
 
 @Composable
 private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Modifier) {
-    val locale = currentAppLanguage().locale
+    val locale = appLocale()
     // Wraps the old price to its own line when large text leaves no room beside the price.
     FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(

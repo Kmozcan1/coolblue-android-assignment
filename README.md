@@ -38,8 +38,8 @@ to the assignment's mock API; its URL is a constant in `core/network`.
   instead: "ipad" shows the iPads and the Apple Pencil, "samsung" shows "No products found".
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
 - Pulling the list down fetches it again.
-- Dutch on a Dutch phone, English otherwise. The flag next to the search field switches, and
-  prices, ratings and counts follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
+- Dutch on a Dutch phone, English otherwise, and either one per app in Android 13+ settings.
+  Prices, ratings and counts follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
   Product names and USPs stay Dutch, as the API sends them; see [Trade-offs](#trade-offs).
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when it is higher than the current one)
@@ -129,7 +129,6 @@ a newer state. There are no job fields to cancel by hand.
 | Hilt | Dependency injection with compile-time checking. ViewModels get their use case, the repository gets its API, nothing is constructed by hand. |
 | Coil 3 | Image loading for Compose. Shares the OkHttp client with Retrofit. |
 | Compose + Material 3 | The UI toolkit the assignment asks for. |
-| AppCompat | Only for the per-app language: it switches and remembers it on every Android version, where the platform API starts at Android 13. |
 | JUnit 4, MockK, Truth, Turbine | Unit tests, mocking, readable assertions, Flow testing. |
 | MockWebServer | Tests the repository against real HTTP responses, including the actual JSON the API returns. |
 
@@ -147,10 +146,11 @@ a newer state. There are no job fields to cancel by hand.
   more modules and no edits to `search`.
 - **Prices as integer cents.** The API's decimal euros are rounded to `Int` cents once, in the
   mapper, so the domain never does arithmetic on floats. The UI formats them in the app's language when it draws them.
-- **A Dutch/English switch the assignment doesn't ask for.** Added because it was cheap and there
-  was time. The app's own words, prices, ratings and counts switch; product names, USPs and promo
-  labels stay Dutch, because the mock API only sends them in Dutch. This assumes a working
-  backend would send them in both languages.
+- **Dutch and English, though the assignment doesn't ask for it.** Added because it was cheap and
+  there was time. The app follows the phone's language, and Android 13+ lets users pick one per
+  app in system settings, so there is no in-app switch. The app's own words, prices, ratings and
+  counts change with it; product names, USPs and promo labels stay Dutch, because the mock API
+  only sends them in Dutch. This assumes a working backend would send them in both languages.
 
 ## Tests
 
