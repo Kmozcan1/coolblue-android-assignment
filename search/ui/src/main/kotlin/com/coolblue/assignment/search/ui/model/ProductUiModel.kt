@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 
 /** A product ready to draw. Prices and rating stay numbers, formatted in the app's language when drawn. */
 @Immutable
-data class ProductUiModel(
+internal data class ProductUiModel(
     val id: Int,
     val name: String,
     val imageUrl: String,

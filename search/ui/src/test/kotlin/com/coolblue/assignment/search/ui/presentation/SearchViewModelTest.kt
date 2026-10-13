@@ -205,6 +205,16 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `given page 1 repeats a row, when it loads, then that row is shown once`() = runTest {
+        coEvery { searchProducts("", 1) } returns page(1, products = listOf(product(1), product(1), product(2)))
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(1, 2).inOrder()
+    }
+
+    @Test
     fun `given a load more in flight, when the query is edited and edited back, then LoadMore works again`() = runTest {
         coEvery { searchProducts("", 1) } returns page(1)
         coEvery { searchProducts("", 2) } coAnswers { delay(1_000); page(2) }
@@ -491,6 +501,22 @@ class SearchViewModelTest {
 
         advanceUntilIdle()
         assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(10)
+    }
+
+    @Test
+    fun `given a load more not yet started, when Refresh, then page 1 replaces it and the refresh ends`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } returns page(2)
+        coEvery { searchProducts("iphone", 1) } returns page(1, products = listOf(product(10)))
+
+        viewModel.onAction(SearchUiAction.LoadMore)
+        viewModel.onAction(SearchUiAction.Refresh) // before the load more request has been picked up
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.isRefreshing).isFalse()
+        assertThat(loaded.products.map { it.id }).containsExactly(10)
+        coVerify(exactly = 0) { searchProducts("iphone", 2) }
     }
 
     @Test

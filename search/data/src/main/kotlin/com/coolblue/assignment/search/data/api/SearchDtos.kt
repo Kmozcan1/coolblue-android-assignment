@@ -19,7 +19,7 @@ internal data class ProductDto(
     val salesPriceIncVat: Double,
     val listPriceIncVat: Double? = null,
     val productImage: String,
-    val reviewInformation: ReviewInformationDto,
+    val reviewInformation: ReviewInformationDto = ReviewInformationDto(),
     @SerialName("USPs") val usps: List<String> = emptyList(),
     val promoIcon: PromoIconDto? = null,
     val nextDayDelivery: Boolean = false,
@@ -27,7 +27,7 @@ internal data class ProductDto(
 
 @Serializable
 internal data class ReviewInformationDto(
-    val reviewSummary: ReviewSummaryDto,
+    val reviewSummary: ReviewSummaryDto = ReviewSummaryDto(),
 )
 
 @Serializable
@@ -39,5 +39,4 @@ internal data class ReviewSummaryDto(
 @Serializable
 internal data class PromoIconDto(
     val text: String,
-    val type: String,
 )

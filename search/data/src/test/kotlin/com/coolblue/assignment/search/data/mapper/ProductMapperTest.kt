@@ -19,7 +19,7 @@ class ProductMapperTest {
         productImage = "https://image.coolblue.nl/300x750/products/818870",
         reviewInformation = ReviewInformationDto(ReviewSummaryDto(reviewAverage = 9.1, reviewCount = 952)),
         usps = listOf("32 GB opslagcapaciteit", "4,7 inch Retina HD scherm", "iOS 11"),
-        promoIcon = PromoIconDto(text = "middenklasse iPhone", type = "coolblues-choice"),
+        promoIcon = PromoIconDto(text = "middenklasse iPhone"),
         nextDayDelivery = true,
     )
 

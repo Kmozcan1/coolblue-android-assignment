@@ -36,6 +36,7 @@ object NetworkModule {
     @Singleton
     fun provideJson(): Json = Json {
         ignoreUnknownKeys = true // the API sends more fields than the app reads
+        coerceInputValues = true // an explicit null on a field with a default gets the default
     }
 
     @Provides

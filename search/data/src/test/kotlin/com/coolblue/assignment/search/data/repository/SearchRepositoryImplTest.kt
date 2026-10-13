@@ -63,6 +63,23 @@ class SearchRepositoryImplTest {
     }
 
     @Test
+    fun `given a product with no reviews, explicit nulls and a bare promo icon, when searching, then it still parses`() = runTest {
+        val product = """
+            {"productId": 1, "productName": "Kabel", "salesPriceIncVat": 9.99, "productImage": "https://image",
+             "USPs": null, "nextDayDelivery": null, "promoIcon": {"text": "Tip"}}
+        """.trimIndent()
+        server.enqueue(MockResponse.Builder().code(200).body("""{"products": [$product], "currentPage": 1, "pageCount": 1}""").build())
+
+        val parsed = (repository.search("kabel", 1) as AppResult.Success).data.products.single()
+
+        assertThat(parsed.reviewAverage).isEqualTo(0.0)
+        assertThat(parsed.reviewCount).isEqualTo(0)
+        assertThat(parsed.usps).isEmpty()
+        assertThat(parsed.nextDayDelivery).isFalse()
+        assertThat(parsed.promoText).isEqualTo("Tip")
+    }
+
+    @Test
     fun `given the request, then query and page are sent as query parameters`() = runTest {
         server.enqueue(MockResponse.Builder().code(200).body(fixture("search_page1.json")).build())
 

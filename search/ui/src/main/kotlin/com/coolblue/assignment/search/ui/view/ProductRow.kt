@@ -166,6 +166,7 @@ private fun PromoKicker(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun Rating(average: Double, reviewCount: Int, modifier: Modifier = Modifier) {
+    if (reviewCount == 0) return // not reviewed yet; "0,0" would read as the worst score
     val locale = appLocale()
     val rating = formatRating(average, locale)
     val reviews = appPluralString(R.plurals.review_count, reviewCount)

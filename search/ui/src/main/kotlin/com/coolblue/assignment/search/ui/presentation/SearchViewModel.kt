@@ -9,6 +9,7 @@ import com.coolblue.assignment.search.domain.usecase.SearchProductsUseCase
 import com.coolblue.assignment.search.ui.mapper.toUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -36,7 +37,8 @@ internal class SearchViewModel @Inject constructor(
     // observes it, so after a restore the search simply runs again.
     private val query: StateFlow<String> = savedStateHandle.getStateFlow(KEY_QUERY, "")
 
-    private val pageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+    // Dropping the older request keeps tryEmit from ever failing; collectLatest wants only the newest anyway.
+    private val pageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     // Outlives an edit away and back, which recomputes isRefreshing from the query alone.
     private var refreshPending = false
@@ -194,7 +196,8 @@ internal class SearchViewModel @Inject constructor(
         } else {
             SearchContent.Loaded(
                 query = query,
-                products = products.map { it.toUiModel() },
+                // The same guard as a later page: a repeated row would crash the grid.
+                products = products.map { it.toUiModel() }.distinctBy { it.id },
                 nextPage = nextPage
             )
         }
