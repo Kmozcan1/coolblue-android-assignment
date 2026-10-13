@@ -84,7 +84,7 @@ class SearchViewModelTest {
             assertThat(typed.content).isEqualTo(SearchContent.Loading)
             val loaded = awaitItem().content as SearchContent.Loaded
             assertThat(loaded.products.map { it.id }).containsExactly(1)
-            assertThat(loaded.nextPage).isEqualTo(2)
+            assertThat(loaded.paging).isEqualTo(Paging.Idle(2))
         }
     }
 
@@ -188,8 +188,7 @@ class SearchViewModelTest {
 
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(loaded.products.map { it.id }).containsExactly(1, 2).inOrder()
-        assertThat(loaded.nextPage).isEqualTo(3)
-        assertThat(loaded.isLoadingMore).isFalse()
+        assertThat(loaded.paging).isEqualTo(Paging.Idle(3))
     }
 
     @Test
@@ -239,7 +238,7 @@ class SearchViewModelTest {
         viewModel.onAction(SearchUiAction.QueryChanged(""))
         advanceTimeBy(400) // the debounce sends "" again, which cancels the load more
 
-        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isLoadingMore).isFalse()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).paging).isEqualTo(Paging.Idle(2))
         viewModel.onAction(SearchUiAction.LoadMore)
         advanceUntilIdle()
         assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(1, 2).inOrder()
@@ -256,7 +255,7 @@ class SearchViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { searchProducts(any(), any()) }
-        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).nextPage).isNull()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).paging).isEqualTo(Paging.End)
     }
 
     @Test
@@ -266,7 +265,7 @@ class SearchViewModelTest {
 
         viewModel.onAction(SearchUiAction.LoadMore)
         advanceTimeBy(100)
-        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isLoadingMore).isTrue()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).paging).isEqualTo(Paging.Loading(2))
         viewModel.onAction(SearchUiAction.LoadMore)
         advanceUntilIdle()
 
@@ -282,19 +281,19 @@ class SearchViewModelTest {
         advanceUntilIdle()
         val failed = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(failed.products.map { it.id }).containsExactly(1)
-        assertThat(failed.loadMoreError).isEqualTo(AppError.Server(500))
+        assertThat(failed.paging).isEqualTo(Paging.Failed(2, AppError.Server(500)))
 
         viewModel.onAction(SearchUiAction.LoadMore) // ignored while the error shows
         advanceUntilIdle()
         coVerify(exactly = 1) { searchProducts("iphone", 2) }
-        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).loadMoreError).isEqualTo(AppError.Server(500))
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).paging).isEqualTo(Paging.Failed(2, AppError.Server(500)))
 
         viewModel.onAction(SearchUiAction.Retry)
         advanceUntilIdle()
 
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(loaded.products.map { it.id }).containsExactly(1, 2).inOrder()
-        assertThat(loaded.loadMoreError).isNull()
+        assertThat(loaded.paging).isEqualTo(Paging.Idle(3))
         coVerify(exactly = 2) { searchProducts("iphone", 2) }
     }
 
@@ -332,7 +331,7 @@ class SearchViewModelTest {
 
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(loaded.products.map { it.id }).containsExactly(10)
-        assertThat(loaded.isLoadingMore).isFalse()
+        assertThat(loaded.paging).isEqualTo(Paging.Idle(2))
         advanceUntilIdle() // the cancelled page 2 never lands
         assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(10)
     }
@@ -486,12 +485,13 @@ class SearchViewModelTest {
         advanceTimeBy(100)
 
         viewModel.onAction(SearchUiAction.Refresh)
+        runCurrent()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).paging).isEqualTo(Paging.Idle(2)) // no skeleton while it refreshes
         advanceUntilIdle() // the cancelled page 2 never lands
 
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(loaded.products.map { it.id }).containsExactly(5)
-        assertThat(loaded.isLoadingMore).isFalse()
-        assertThat(loaded.nextPage).isEqualTo(2)
+        assertThat(loaded.paging).isEqualTo(Paging.Idle(2))
     }
 
     @Test
@@ -511,6 +511,35 @@ class SearchViewModelTest {
 
         advanceUntilIdle()
         assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(10)
+    }
+
+    @Test
+    fun `given a load more error, when a refresh fails, then the error is gone and LoadMore can ask again`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } returns AppResult.Failure(AppError.Server(500))
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+        coEvery { searchProducts("iphone", 1) } returns AppResult.Failure(AppError.Network)
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceUntilIdle()
+
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).paging).isEqualTo(Paging.Idle(2))
+    }
+
+    @Test
+    fun `given a load more error, when the query is edited and edited back, then the error stays`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } returns AppResult.Failure(AppError.Network)
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+
+        viewModel.onAction(SearchUiAction.QueryChanged("iphonex"))
+        advanceTimeBy(100)
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
+        advanceUntilIdle()
+
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).paging).isEqualTo(Paging.Failed(2, AppError.Network))
     }
 
     @Test

@@ -96,18 +96,20 @@ internal class SearchViewModel @Inject constructor(
 
     private fun loadMore() {
         val content = _uiState.value.content as? SearchContent.Loaded ?: return
-        // No next page, already loading, showing an error (the user retries that by hand), or refreshing:
-        // page 1 is about to replace these rows, and after a refined query page 2 would not even match them.
-        if (content.nextPage == null || content.isLoadingMore || content.isRefreshing || content.loadMoreError != null) return
-        pageRequests.tryEmit(content.nextPage)
+        // Only when idle: not on the last page, while loading, or after an error (the user retries that by hand).
+        // Nor while refreshing: page 1 is about to replace these rows, and after a refined query page 2 would not
+        // even match them.
+        val paging = content.paging as? Paging.Idle ?: return
+        if (content.isRefreshing) return
+        pageRequests.tryEmit(paging.nextPage)
     }
 
     private fun retry() {
         when (val content = _uiState.value.content) {
             is SearchContent.Error -> pageRequests.tryEmit(FIRST_PAGE)
             // Not while refreshing: page 1 is about to replace these rows, so page N would not follow them.
-            is SearchContent.Loaded -> if (content.loadMoreError != null && content.nextPage != null && !content.isRefreshing) {
-                pageRequests.tryEmit(content.nextPage)
+            is SearchContent.Loaded -> if (content.paging is Paging.Failed && !content.isRefreshing) {
+                pageRequests.tryEmit(content.paging.nextPage)
             }
 
             SearchContent.Loading, is SearchContent.Empty -> Unit
@@ -132,7 +134,7 @@ internal class SearchViewModel @Inject constructor(
         if (rowsForQuery != null && !rowsForQuery.isRefreshing) {
             // Edited away and back: nothing to fetch. A load-more that was in flight has just been
             // cancelled by collectLatest, so its spinner goes too; the list asks again.
-            updateLoaded { it.copy(isRefreshing = false, isLoadingMore = false) }
+            updateLoaded { it.copy(isRefreshing = false, paging = it.paging.loadCancelled()) }
             return
         }
         val isRefresh = rowsForQuery != null
@@ -141,7 +143,7 @@ internal class SearchViewModel @Inject constructor(
         _uiState.update { state ->
             val content = state.content
             val loading = if (content is SearchContent.Loaded) {
-                content.copy(isRefreshing = true, isLoadingMore = false, loadMoreError = null, refreshFailure = null)
+                content.copy(isRefreshing = true, paging = content.paging.idle(), refreshFailure = null)
             } else {
                 SearchContent.Loading
             }
@@ -168,24 +170,18 @@ internal class SearchViewModel @Inject constructor(
     }
 
     private suspend fun loadNextPage(query: String, page: Int) {
-        updateLoaded { it.copy(isLoadingMore = true, loadMoreError = null) }
+        updateLoaded { it.copy(paging = Paging.Loading(page)) }
         when (val result = searchProducts(query, page)) {
             is AppResult.Success -> updateLoaded { loaded ->
                 loaded.copy(
                     // Results can shift between page requests, so a page may repeat a row on screen;
                     // the grid keys rows by id and two equal keys would crash it.
                     products = (loaded.products + result.data.products.map { it.toUiModel() }).distinctBy { it.id },
-                    nextPage = result.data.nextPage,
-                    isLoadingMore = false,
+                    paging = pagingFor(result.data.nextPage),
                 )
             }
 
-            is AppResult.Failure -> updateLoaded {
-                it.copy(
-                    isLoadingMore = false,
-                    loadMoreError = result.error
-                )
-            }
+            is AppResult.Failure -> updateLoaded { it.copy(paging = Paging.Failed(page, result.error)) }
         }
     }
 
@@ -205,7 +201,7 @@ internal class SearchViewModel @Inject constructor(
                 query = query,
                 // The same guard as a later page: a repeated row would crash the grid.
                 products = products.map { it.toUiModel() }.distinctBy { it.id },
-                nextPage = nextPage
+                paging = pagingFor(nextPage),
             )
         }
 
@@ -215,6 +211,18 @@ internal class SearchViewModel @Inject constructor(
         const val DEBOUNCE_MS = 300L
         const val REFRESH_MIN_MS = 800L
     }
+}
+
+private fun pagingFor(nextPage: Int?): Paging = if (nextPage == null) Paging.End else Paging.Idle(nextPage)
+
+/** The load-more was cancelled, so the list may ask again; an error stays for the user to retry. */
+private fun Paging.loadCancelled(): Paging = if (this is Paging.Loading) Paging.Idle(nextPage) else this
+
+/** Page 1 is coming with its own next page: a load or an error on this one makes way. */
+private fun Paging.idle(): Paging = when (this) {
+    is Paging.Loading -> Paging.Idle(nextPage)
+    is Paging.Failed -> Paging.Idle(nextPage)
+    is Paging.Idle, Paging.End -> this
 }
 
 /** Runs [block], then waits out whatever is left of [duration]. */

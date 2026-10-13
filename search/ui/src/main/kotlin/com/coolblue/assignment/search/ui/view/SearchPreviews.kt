@@ -7,6 +7,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.core.ui.theme.CoolblueTheme
 import com.coolblue.assignment.search.ui.model.ProductUiModel
+import com.coolblue.assignment.search.ui.presentation.Paging
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import com.coolblue.assignment.search.ui.presentation.SearchUiState
 
@@ -34,7 +35,7 @@ private val macbook = iphone.copy(
     nextDayDelivery = false,
 )
 
-private val loaded = SearchContent.Loaded(query = "iphone", products = listOf(iphone, macbook), nextPage = 2)
+private val loaded = SearchContent.Loaded(query = "iphone", products = listOf(iphone, macbook), paging = Paging.Idle(2))
 
 @PreviewLightDark
 @Composable
@@ -93,20 +94,20 @@ private fun SearchScreenRefiningPreview() {
 @PreviewLightDark
 @Composable
 private fun SearchScreenEndPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(nextPage = null)), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(paging = Paging.End)), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadingMorePreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(isLoadingMore = true)), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(paging = Paging.Loading(2))), onAction = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadMoreErrorPreview() {
     CoolblueTheme {
-        SearchScreen(SearchUiState("iphone", loaded.copy(loadMoreError = AppError.Server(500))), onAction = {})
+        SearchScreen(SearchUiState("iphone", loaded.copy(paging = Paging.Failed(2, AppError.Server(500)))), onAction = {})
     }
 }
 

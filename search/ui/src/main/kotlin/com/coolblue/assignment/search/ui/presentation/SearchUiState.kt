@@ -26,14 +26,28 @@ internal sealed interface SearchContent {
         /** The query these rows answer; the field may already hold a newer one. */
         val query: String,
         val products: List<ProductUiModel>,
-        val nextPage: Int?,
-        val isLoadingMore: Boolean = false,
-        val loadMoreError: AppError? = null,
+        /** Where the next page stands; the list's footer shows it. */
+        val paging: Paging,
         /** Page 1 is loading, for a refined query or a refresh; these rows stay until it lands. */
         val isRefreshing: Boolean = false,
         /** The last refresh failed. The rows stay: they still answer the query. */
         val refreshFailure: RefreshFailure? = null,
     ) : SearchContent
+}
+
+/** The next page, as the list's footer shows it. Exactly one of these at a time. */
+@Immutable
+internal sealed interface Paging {
+    /** More to come: the list asks for [nextPage] near its end. */
+    data class Idle(val nextPage: Int) : Paging
+
+    data class Loading(val nextPage: Int) : Paging
+
+    /** The user retries [nextPage] by hand. */
+    data class Failed(val nextPage: Int, val error: AppError) : Paging
+
+    /** The last page is on screen. */
+    data object End : Paging
 }
 
 /** Not a data class: two failures with the same error must not be equal, or the second gets no snackbar. */

@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.coolblue.assignment.search.ui.R
 import com.coolblue.assignment.search.ui.mapper.messageRes
+import com.coolblue.assignment.search.ui.presentation.Paging
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
@@ -142,23 +143,24 @@ internal fun ProductList(
                     )
                 }
             }
-            when {
-                content.isLoadingMore -> item(key = "loading") {
+            when (val paging = content.paging) {
+                is Paging.Idle -> Unit
+                is Paging.Loading -> item(key = "loading") {
                     Column {
                         HorizontalDivider()
                         ProductRowSkeleton()
                     }
                 }
-                content.loadMoreError != null -> fullWidthItem(key = "error") {
+                is Paging.Failed -> fullWidthItem(key = "error") {
                     StatusMessage(
                         title = stringResource(R.string.load_more_error),
-                        detail = stringResource(content.loadMoreError.messageRes()),
+                        detail = stringResource(paging.error.messageRes()),
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         actionLabel = stringResource(R.string.retry),
                         onAction = onRetry,
                     )
                 }
-                content.nextPage == null -> fullWidthItem(key = "end") {
+                Paging.End -> fullWidthItem(key = "end") {
                     val count = content.products.size
                     Text(
                         text = appPluralString(R.plurals.list_end, count),
