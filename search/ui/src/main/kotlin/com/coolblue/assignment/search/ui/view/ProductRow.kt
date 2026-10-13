@@ -28,12 +28,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -243,7 +242,8 @@ private fun Delivery(modifier: Modifier = Modifier) {
 /** A row-shaped placeholder for a page in flight: the geometry of [ProductRow], no text, a slow pulse. */
 @Composable
 internal fun ProductRowSkeleton(modifier: Modifier = Modifier) {
-    val pulse by rememberInfiniteTransition(label = "skeleton").animateFloat(
+    // Read in the draw phase only (graphicsLayer below), so the pulse redraws without recomposing every frame.
+    val pulse = rememberInfiniteTransition(label = "skeleton").animateFloat(
         initialValue = 1f,
         targetValue = 0.5f,
         animationSpec = infiniteRepeatable(tween(durationMillis = 800, easing = LinearEasing), RepeatMode.Reverse),
@@ -254,7 +254,7 @@ internal fun ProductRowSkeleton(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 14.dp)
-            .alpha(pulse),
+            .graphicsLayer { alpha = pulse.value },
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(Modifier.size(TileWidth, TileHeight).background(bar, TileShape))
