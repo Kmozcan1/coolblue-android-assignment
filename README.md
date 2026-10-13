@@ -11,11 +11,11 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **35 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **36 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start at
-[One request pipeline](#one-request-pipeline), then [Left out on purpose](#left-out-on-purpose).
+[One request pipeline](#one-request-pipeline), then [Trade-offs](#trade-offs).
 
 ## Run it
 
@@ -86,8 +86,8 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
   and so does a restore after process death, since the search starts over.
 - `Loading` only shows when there are no rows to keep: a cold start, a restore after process
   death, Retry after an error, or a refinement from an empty result. Refining a query that has
-  rows keeps them on screen with `Loaded.isRefreshing` set until the new rows replace them at
-  the top; `LoadMore` is ignored meanwhile, since page 2 would belong to the new query.
+  rows keeps them on screen under a thin progress bar, with `Loaded.isRefreshing` set, until the
+  new rows replace them at the top; `LoadMore` is ignored meanwhile, since page 2 would belong to the new query.
 - The repository returns `AppResult`: `Success` with data or `Failure` with an `AppError`.
   Exceptions stop at the data layer; the ViewModel only ever sees these two cases.
 
@@ -117,61 +117,20 @@ a newer state. There are no job fields to cancel by hand.
 | JUnit 4, MockK, Truth, Turbine | Unit tests, mocking, readable assertions, Flow testing. |
 | MockWebServer | Tests the repository against real HTTP responses, including the actual JSON the API returns. |
 
-## Decisions and trade-offs
+## Trade-offs
 
-**Hand-rolled paging instead of Paging 3.** The API has three pages of 24. Paging 3 would
-replace the single `UiState` with `PagingData` plus `LoadState` plumbing, making both the code
-and the tests harder to follow for no visible gain. The repository returns `ProductPage` with
-`page` and `pageCount`, which is exactly what a `PagingSource.load` would return, so Paging 3
-can be introduced at the data layer if the catalogue ever grows. The last page is derived from
-`pageCount` on purpose: the API repeats the last page for any page number beyond it, so an
-empty response never comes.
-
-**Main shows what the API returns; in-app search is a branch.** The API ignores the search
-term, and the PDF says so. Whether the app should search the catalogue itself is a product
-call, so main sends the query and shows the response, as it would against a real search
-backend. The `in-app-search` branch is [one commit on top of main](https://github.com/Kmozcan1/coolblue-android-assignment/compare/main...in-app-search): `SearchProductsUseCase`
-filters each page by name and USPs and skips pages that filter down to nothing. That commit
-touches only `search/domain` and this README; the ViewModel, the repository and the UI stay
-untouched. That is why main keeps the use case even though it is a single repository call.
-
-**Product images are cropped to a 1:2 tile.** Every image the API links to is 300×750 on white
-with the product centred and filling the width; measured across phones, tablets, a watch, a
-keyboard and a cable, every product sits inside the middle 600 px. So the row shows the image
-with `ContentScale.Crop` in an 84×168 dp tile: the empty top and bottom tenths go, every product
-stays whole (the Pencil loses its ends), and no grey box with a white strip inside it.
-
-**Prices as integer cents.** The API sends euros as a decimal number. The domain stores
-`salesPriceCents: Int` because floating-point money is a known source of bugs. Formatting
-happens once, in the UI mapper, with the Dutch locale (`€ 369,00`).
-
-**A sealed `AppError` with three cases.** `Network`, `Server(code)` and `Unknown` are the only
-distinctions the UI acts on. The error never carries the exception, so states stay comparable
-in tests. `Network` and `Server` come from `IOException` and `HttpException`; anything else the
-stack throws, including a body that will not parse, becomes `Unknown` instead of a crash.
-`CancellationException` is rethrown so coroutine cancellation keeps working.
-
-**No dispatcher switch in the repository.** Retrofit's suspend functions already run on OkHttp's
-own threads, so `withContext(Dispatchers.IO)` would add nothing.
-
-**Query in `SavedStateHandle`.** The ViewModel survives rotation but not process death. Keeping
-the query in `SavedStateHandle` costs two lines, and because the request pipeline observes
-that flow, the search runs again on its own after a restore.
-
-**Classic `TextField(value, onValueChange)`.** The query is updated synchronously in
-`onAction`, so the field never lags behind the keyboard. The newer `TextFieldState` API was
-considered and left out: it would move Compose state into the ViewModel and complicate the
-tests.
-
-**Base URL as a constant.** There is one environment. With a second one it becomes a
-`buildConfigField` per flavour.
-
-**Nine modules for one screen.** Heavier than the screen needs, but it shows how the project
-would grow: a second feature is three more modules and three lines in `settings.gradle.kts`,
-and its repository returns the same `AppResult` from `core/domain` without depending on
-`search`. The convention plugins in `build-logic` keep each module's build file small. Hilt is
-its own plugin, applied only by the modules that have bindings or injection points, so
-`core/ui` carries no DI.
+- **The app shows what the API returns.** The mock ignores the search term, so whether the app
+  should search the catalogue itself is a product call. The `in-app-search` branch does, in
+  [one commit on top of main](https://github.com/Kmozcan1/coolblue-android-assignment/compare/main...in-app-search) that touches only `search/domain` and this README. Main
+  keeps the use case, though it is a single repository call, so turning in-app search on never
+  touches the ViewModel.
+- **Hand-rolled paging, not Paging 3.** Three pages of 24 don't need it. `ProductPage` maps
+  straight onto a `PagingSource`, so the data side of a switch is small; the ViewModel and the
+  list would trade their load-more state for `PagingData` and `LoadState`.
+- **Nine modules for one screen.** More than the screen needs, but a second feature is three
+  more modules and no edits to `search`.
+- **Prices as integer cents.** The API's decimal euros are rounded to `Int` cents once, in the
+  mapper, so the domain never does arithmetic on floats. The UI formats them in the Dutch locale.
 
 ## Tests
 
@@ -181,7 +140,7 @@ its own plugin, applied only by the modules that have bindings or injection poin
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through |
 | search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
-| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, duplicate guard, load-more error and retry, cancellation on query change, saved query and restore, clear to idle, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query |
+| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated by the next page, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, clear to idle, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
 Android lint.
@@ -201,7 +160,6 @@ was reviewed, and the commit history reads as the build sequence.
 
 - A product detail screen: outside the user story. The bottom sheet shows what the search
   result already holds; there is no second request and no navigation.
-- Paging 3: see above.
 - A navigation library: one screen.
 - ktlint or detekt: valuable on a team, noise in an assignment of this size.
 - Compose UI tests: the screen is stateless and its logic lives in the tested ViewModel.
@@ -209,4 +167,4 @@ was reviewed, and the commit history reads as the build sequence.
 - An offline cache: search-as-you-type results are live by nature, and the API is a mock.
   A load failure shows in place with Retry; the rows already on screen stay.
 - Crash reporting: nothing ships, so there is no backend to report to. The repository logs
-  what it turns into `Unknown`, which is the only failure that carries no other clue.
+  what it turns into `AppError.Unknown`, which is the only failure that carries no other clue.
