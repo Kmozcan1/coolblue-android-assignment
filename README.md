@@ -43,9 +43,8 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when it is higher than the current one)
   and the next-day delivery promise.
-- Every error offers a way out: a message with Retry under the field when the first page fails,
-  a footer row with Retry when a later page fails, a snackbar with Try again when a refresh fails.
-  The last two keep the rows already on screen.
+- Every error offers Try again: under the field when the first page fails, in a footer row when
+  a later page fails, in a snackbar when a refresh fails. The last two keep the rows on screen.
 - Tapping a row opens the product in a bottom sheet: the full name, every USP, a larger photo.
 - The query survives rotation and process death. After a restore the search runs again by itself.
 
@@ -181,6 +180,6 @@ was reviewed, and the commit history reads as the build sequence.
 - Compose UI tests: the screen is stateless and its logic lives in the tested ViewModel.
 - Release signing: nothing here ships.
 - An offline cache: search-as-you-type results are live by nature, and the API is a mock.
-  A failed load offers Retry; the rows already on screen stay.
+  A failed load offers Try again; the rows already on screen stay.
 - Crash reporting: nothing ships, so there is no backend to report to. The repository logs
   what it turns into `AppError.Unknown`, which is the only failure that carries no other clue.
