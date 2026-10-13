@@ -6,6 +6,10 @@ plugins {
 
 android {
     namespace = "com.coolblue.assignment.search.data"
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true // SearchRepositoryImpl's Log.w is a no-op in JVM tests
+    }
 }
 
 dependencies {
