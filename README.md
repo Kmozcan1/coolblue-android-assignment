@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **37 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **42 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -37,6 +37,8 @@ to the assignment's mock API; its URL is a constant in `core/network`.
   query lists the same products. The [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch searches in the app
   instead: "ipad" shows the iPads and the Apple Pencil, "samsung" shows "No products found".
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
+- Pulling the list down fetches it again. If that fails the rows stay, and a snackbar says why
+  and offers to try again.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when it is higher than the current one)
   and the next-day delivery promise.
@@ -92,8 +94,10 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
   and so does a restore after process death, since the search starts over.
 - `Loading` only shows when there are no rows to keep: a cold start, a restore after process
   death, Retry after an error, or a refinement from an empty result. Refining a query that has
-  rows keeps them on screen under a thin progress bar, with `Loaded.isRefreshing` set, until the
+  rows keeps them on screen under the refresh indicator, with `Loaded.isRefreshing` set, until the
   new rows replace them at the top; `LoadMore` is ignored meanwhile, since page 2 would belong to the new query.
+  A pull to refresh sets the same flag for the rows' own query. If it fails the rows stay, since
+  they still answer the query, and `Loaded.refreshError` holds the reason until the snackbar has shown it.
 - The repository returns `AppResult`: `Success` with data or `Failure` with an `AppError`.
   Exceptions stop at the data layer; the ViewModel only ever sees these two cases.
 
@@ -106,7 +110,7 @@ merge(query.debounce(300).map { 1 }, pageRequests)
     .collectLatest { page -> load(query.value, page) }
 ```
 
-The debounced query asks for page 1. `Retry` and `LoadMore` push a page number into
+The debounced query asks for page 1. `Retry`, `LoadMore` and `Refresh` push a page number into
 `pageRequests`. `collectLatest` cancels the previous load whenever a new request arrives, so at
 most one request is ever in flight for the screen and a slow, stale response can never overwrite
 a newer state. There are no job fields to cancel by hand.
@@ -148,7 +152,7 @@ a newer state. There are no job fields to cancel by hand.
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through |
 | search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
-| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query |
+| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
 Android lint.

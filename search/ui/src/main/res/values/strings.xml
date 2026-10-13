@@ -6,6 +6,8 @@
     <string name="search_empty_hint">Check the spelling, or try a shorter word.</string>
     <string name="retry">Try again</string>
     <string name="load_more_error">Couldn’t load more products</string>
+    <string name="refresh">Refresh</string>
+    <string name="refresh_error">Couldn’t refresh. %1$s</string>
     <string name="error_network">No internet connection</string>
     <string name="error_server">The Coolblue server returned an error</string>
     <string name="error_unknown">The search couldn’t be completed</string>

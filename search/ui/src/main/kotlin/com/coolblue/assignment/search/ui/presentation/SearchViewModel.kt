@@ -55,6 +55,8 @@ internal class SearchViewModel @Inject constructor(
             is SearchUiAction.QueryChanged -> onQueryChanged(action.query)
             SearchUiAction.LoadMore -> loadMore()
             SearchUiAction.Retry -> retry()
+            SearchUiAction.Refresh -> refresh()
+            SearchUiAction.RefreshErrorShown -> updateLoaded { it.copy(refreshError = null) }
         }
     }
 
@@ -81,7 +83,7 @@ internal class SearchViewModel @Inject constructor(
     private fun loadMore() {
         val content = _uiState.value.content as? SearchContent.Loaded ?: return
         // No next page, already loading, showing an error (the user retries that by hand), or refreshing:
-        // page 2 would be fetched for the new query and appended to the old rows.
+        // page 1 is about to replace these rows, and after a refined query page 2 would not even match them.
         if (content.nextPage == null || content.isLoadingMore || content.isRefreshing || content.loadMoreError != null) return
         pageRequests.tryEmit(content.nextPage)
     }
@@ -89,7 +91,7 @@ internal class SearchViewModel @Inject constructor(
     private fun retry() {
         when (val content = _uiState.value.content) {
             is SearchContent.Error -> pageRequests.tryEmit(FIRST_PAGE)
-            // Not while refreshing: page N would belong to the query being typed, not to these rows.
+            // Not while refreshing: page 1 is about to replace these rows, so page N would not follow them.
             is SearchContent.Loaded -> if (content.loadMoreError != null && content.nextPage != null && !content.isRefreshing) {
                 pageRequests.tryEmit(content.nextPage)
             }
@@ -98,15 +100,26 @@ internal class SearchViewModel @Inject constructor(
         }
     }
 
+    private fun refresh() {
+        val content = _uiState.value.content as? SearchContent.Loaded ?: return
+        // Page 1 is already on its way: a refined query, or a refresh that has not landed yet.
+        if (content.isRefreshing) return
+        // Set here rather than when the load starts, so the indicator holds from the moment the finger lifts.
+        // With the rows' own query, isRefreshing is what tells loadFirstPage to fetch page 1 again.
+        updateLoaded { it.copy(isRefreshing = true) }
+        pageRequests.tryEmit(FIRST_PAGE)
+    }
+
     private suspend fun load(query: String, page: Int) {
         if (page == FIRST_PAGE) loadFirstPage(query) else loadNextPage(query, page)
     }
 
     private suspend fun loadFirstPage(query: String) {
-        val current = _uiState.value.content
-        if (current is SearchContent.Loaded && current.query == query) {
-            // Edited away and back: the rows on screen already answer this query. A load-more that was in
-            // flight has just been cancelled by collectLatest, so its spinner goes too; the list asks again.
+        // Rows on screen that already answer this query: pulled to refresh (isRefreshing), or edited away and back.
+        val sameRows = (_uiState.value.content as? SearchContent.Loaded)?.takeIf { it.query == query }
+        if (sameRows != null && !sameRows.isRefreshing) {
+            // Edited away and back: nothing to fetch. A load-more that was in flight has just been
+            // cancelled by collectLatest, so its spinner goes too; the list asks again.
             updateLoaded { it.copy(isRefreshing = false, isLoadingMore = false) }
             return
         }
@@ -115,20 +128,25 @@ internal class SearchViewModel @Inject constructor(
         _uiState.update { state ->
             val content = state.content
             val loading = if (content is SearchContent.Loaded) {
-                content.copy(isRefreshing = true, isLoadingMore = false, loadMoreError = null)
+                content.copy(isRefreshing = true, isLoadingMore = false, loadMoreError = null, refreshError = null)
             } else {
                 SearchContent.Loading
             }
             state.copy(content = loading)
         }
-        val content = when (val result = searchProducts(query, FIRST_PAGE)) {
-            is AppResult.Success -> result.data.toContent(query)
-            is AppResult.Failure -> SearchContent.Error(result.error)
-        }
+        val result = searchProducts(query, FIRST_PAGE)
         // Typed on while this was in flight: the debounce will load the newer query, and these rows
         // must not show under it meanwhile. collectLatest only cancels once that debounce fires.
         if (this.query.value != query) return
-        _uiState.update { it.copy(content = content) }
+        when (result) {
+            is AppResult.Success -> _uiState.update { it.copy(content = result.data.toContent(query)) }
+            // A failed refresh keeps its rows: they still answer the query. The screen says it failed.
+            is AppResult.Failure -> if (sameRows != null) {
+                updateLoaded { it.copy(isRefreshing = false, refreshError = result.error) }
+            } else {
+                _uiState.update { it.copy(content = SearchContent.Error(result.error)) }
+            }
+        }
     }
 
     private suspend fun loadNextPage(query: String, page: Int) {

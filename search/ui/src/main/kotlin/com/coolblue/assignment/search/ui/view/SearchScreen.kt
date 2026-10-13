@@ -19,10 +19,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -51,10 +57,14 @@ internal fun SearchScreen(
     // rotation keeps the ViewModel and so the sheet, but after process death the search restarts and
     // a saved id must not reopen the sheet when its page is fetched again.
     var openProductId by rememberSaveable(uiState.content is SearchContent.Loaded) { mutableStateOf<Int?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Edge-to-edge switches off the window's own keyboard resizing, so the keyboard is an inset here:
     // the grid shrinks above it instead of scrolling under it.
-    Scaffold(contentWindowInsets = ScaffoldDefaults.contentWindowInsets.union(WindowInsets.ime)) { padding ->
+    Scaffold(
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.union(WindowInsets.ime),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -101,9 +111,23 @@ internal fun SearchScreen(
                         onProductClick = { openProductId = it },
                         onLoadMore = { onAction(SearchUiAction.LoadMore) },
                         onRetry = { onAction(SearchUiAction.Retry) },
+                        onRefresh = { onAction(SearchUiAction.Refresh) },
                     )
                 }
             }
+        }
+    }
+
+    // A failed refresh leaves the rows on screen, so it is told in a snackbar rather than in their place.
+    // Acknowledged once dismissed, so a rotation mid-snackbar shows it again rather than losing it.
+    val refreshError = (uiState.content as? SearchContent.Loaded)?.refreshError
+    if (refreshError != null) {
+        val message = stringResource(R.string.refresh_error, stringResource(refreshError.messageRes()))
+        val retryLabel = stringResource(R.string.retry)
+        LaunchedEffect(refreshError) {
+            // Long, not the Indefinite an action label defaults to: the snackbar must go away on its own.
+            val result = snackbarHostState.showSnackbar(message, actionLabel = retryLabel, duration = SnackbarDuration.Long)
+            onAction(if (result == SnackbarResult.ActionPerformed) SearchUiAction.Refresh else SearchUiAction.RefreshErrorShown)
         }
     }
 

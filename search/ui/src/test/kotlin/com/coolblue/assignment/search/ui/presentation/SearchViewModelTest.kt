@@ -370,4 +370,92 @@ class SearchViewModelTest {
 
         assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isRefreshing).isFalse()
     }
+
+    @Test
+    fun `given results on screen, when Refresh, then the rows stay until page 1 is fetched again and replaces them`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 1) } returns page(1, products = listOf(product(5)))
+
+        viewModel.onAction(SearchUiAction.Refresh)
+
+        val refreshing = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(refreshing.products.map { it.id }).containsExactly(1)
+        assertThat(refreshing.isRefreshing).isTrue()
+
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(5)
+        assertThat(loaded.isRefreshing).isFalse()
+        coVerify(exactly = 2) { searchProducts("iphone", 1) }
+    }
+
+    @Test
+    fun `given a refresh fails, then the rows stay with the error until it has been shown`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 1) } returns AppResult.Failure(AppError.Network)
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceUntilIdle()
+
+        val failed = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(failed.products.map { it.id }).containsExactly(1)
+        assertThat(failed.isRefreshing).isFalse()
+        assertThat(failed.refreshError).isEqualTo(AppError.Network)
+
+        viewModel.onAction(SearchUiAction.RefreshErrorShown)
+
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).refreshError).isNull()
+    }
+
+    @Test
+    fun `given a refined query is loading, when Refresh, then only the refined query is fetched`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone 6", 1) } coAnswers { delay(1_000); page(1, products = listOf(product(6))) }
+
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone 6"))
+        advanceTimeBy(500) // past the debounce, the request is in flight
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { searchProducts("iphone", 1) }
+        coVerify(exactly = 1) { searchProducts("iphone 6", 1) }
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(6)
+    }
+
+    @Test
+    fun `given a load more in flight, when Refresh, then it is cancelled and page 1 replaces the rows`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 2) } coAnswers { delay(1_000); page(2) }
+        coEvery { searchProducts("iphone", 1) } returns page(1, products = listOf(product(5)))
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceTimeBy(100)
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceUntilIdle() // the cancelled page 2 never lands
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(5)
+        assertThat(loaded.isLoadingMore).isFalse()
+        assertThat(loaded.nextPage).isEqualTo(2)
+    }
+
+    @Test
+    fun `given a refresh in flight, when the query changes before it lands, then its result is dropped`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 1) } coAnswers { delay(100); page(1, products = listOf(product(5))) }
+        coEvery { searchProducts("ipad", 1) } returns page(1, products = listOf(product(10)))
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceTimeBy(50)
+        viewModel.onAction(SearchUiAction.QueryChanged("ipad"))
+        advanceTimeBy(100) // the refresh has landed, the debounce for ipad has not fired yet
+
+        val waiting = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(waiting.products.map { it.id }).containsExactly(1)
+        assertThat(waiting.isRefreshing).isTrue()
+
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(10)
+    }
 }
