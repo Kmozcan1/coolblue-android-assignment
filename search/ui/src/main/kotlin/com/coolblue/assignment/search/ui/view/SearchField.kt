@@ -21,11 +21,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.coolblue.assignment.core.ui.theme.CoolblueColors
 import com.coolblue.assignment.search.ui.R
 
 private val FieldShape = RoundedCornerShape(12.dp)
@@ -36,7 +35,7 @@ internal fun SearchField(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
     val fill = MaterialTheme.colorScheme.surfaceContainer
@@ -46,7 +45,7 @@ internal fun SearchField(
         modifier = modifier
             .fillMaxWidth()
             // Always 2 dp, only the colour changes: focusing never shifts the layout.
-            .border(2.dp, if (focused) CoolblueColors.Blue else Color.Transparent, FieldShape),
+            .border(2.dp, if (focused) MaterialTheme.colorScheme.primary else Color.Transparent, FieldShape),
         interactionSource = interactionSource,
         shape = FieldShape,
         colors = TextFieldDefaults.colors(
@@ -66,7 +65,7 @@ internal fun SearchField(
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        // Search runs as you type (debounced in the ViewModel); the key only dismisses the keyboard.
-        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+        // Search runs as you type (debounced in the ViewModel); the key ends typing, like a drag on the list.
+        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
     )
 }

@@ -13,9 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
@@ -99,11 +102,11 @@ internal fun SearchScreen(
                     is SearchContent.Empty -> StatusMessage(
                         title = stringResource(R.string.search_empty, content.query),
                         detail = stringResource(R.string.search_empty_hint),
-                        modifier = StatusPadding,
+                        modifier = Modifier.verticalScroll(rememberScrollState()).then(StatusPadding),
                     )
                     is SearchContent.Error -> StatusMessage(
                         title = stringResource(content.error.messageRes()),
-                        modifier = StatusPadding,
+                        modifier = Modifier.verticalScroll(rememberScrollState()).then(StatusPadding),
                         actionLabel = stringResource(R.string.retry),
                         onAction = { onAction(SearchUiAction.Retry) },
                     )
@@ -120,8 +123,11 @@ internal fun SearchScreen(
         }
     }
 
-    val openProduct = (uiState.content as? SearchContent.Loaded)?.products?.firstOrNull { it.id == openProductId }
-    // A refresh dropped this product. Forget it, or the sheet would reopen when a later page brings it back.
+    // Looked up when the sheet opens, so rows landing underneath cannot take it away.
+    val openProduct = remember(openProductId) {
+        (uiState.content as? SearchContent.Loaded)?.products?.firstOrNull { it.id == openProductId }
+    }
+    // Missing when looked up again after a rotation (a refresh dropped it): forget it.
     if (openProductId != null && openProduct == null) SideEffect { openProductId = null }
 
     // Not under an open sheet, where the snackbar would time out unseen.
@@ -141,6 +147,8 @@ internal fun SearchScreen(
         ModalBottomSheet(
             onDismissRequest = { openProductId = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            // The default comes out grey in the dark palette, whose sheet colour equals surfaceVariant.
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             ProductDetail(openProduct)
         }
@@ -156,7 +164,7 @@ private fun LoadingList() {
         userScrollEnabled = false,
         modifier = Modifier.fillMaxSize().semantics { contentDescription = label },
     ) {
-        items(count = 6) {
+        items(count = 12) { // enough to fill a tablet; the grid only composes what fits
             Column {
                 HorizontalDivider()
                 ProductRowSkeleton()

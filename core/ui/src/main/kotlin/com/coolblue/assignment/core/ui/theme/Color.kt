@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 
 /** Brand colours, as published. */
 object CoolblueColors {
-    /** Coolblue blue. Only 3.2:1 against light paper, so in light mode it marks the focused search field and nothing else. */
+    /** Coolblue blue. Only 3.2:1 against light paper, too light for text there: the dark primary and the light snackbar action. */
     val Blue = Color(0xFF0090E3)
 
     /** The image CDN renders every product on pure white. The tile matches, so the photo's edge disappears. */

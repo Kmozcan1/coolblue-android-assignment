@@ -83,7 +83,7 @@ internal fun ProductList(
         gridState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().collect { focusManager.clearFocus() }
     }
 
-    // TalkBack cannot pull the list down.
+    // Pulling takes a two-finger drag under TalkBack; this puts Refresh in each row's Actions menu.
     val refreshAction = CustomAccessibilityAction(stringResource(R.string.refresh)) {
         gridState.requestScrollToItem(0)
         onRefresh()
@@ -108,7 +108,12 @@ internal fun ProductList(
                 }
             }
             when {
-                content.isLoadingMore -> fullWidthItem(key = "loading") { ProductRowSkeleton() }
+                content.isLoadingMore -> item(key = "loading") {
+                    Column {
+                        HorizontalDivider()
+                        ProductRowSkeleton()
+                    }
+                }
                 content.loadMoreError != null -> fullWidthItem(key = "error") {
                     StatusMessage(
                         title = stringResource(R.string.load_more_error),
@@ -131,10 +136,10 @@ internal fun ProductList(
         }
         // The rows belong to the previous query until the new ones land; the bar says a request is out.
         if (isRefining) {
-            // The default track is secondaryContainer, which the theme leaves at Material's purple.
+            // A tinted track: the default is Material's purple, and with animations off the bar is all track.
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
             )
         }
     }

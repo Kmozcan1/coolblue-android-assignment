@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -110,7 +110,7 @@ internal fun ProductDetail(
     ) {
         // Twice the row tile. The source is 300 px wide, so this is as large as it goes before it softens.
         // In a short window (phone landscape) the row size, or the name would start below the fold.
-        val compactHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } < 480.dp
+        val compactHeight = LocalWindowInfo.current.containerDpSize.height < 480.dp
         val scale = if (compactHeight) 1 else 2
         ProductTile(
             imageUrl = product.imageUrl,
@@ -206,7 +206,8 @@ private fun Usp(text: String, singleLine: Boolean) {
 
 @Composable
 private fun Price(price: String, listPrice: String?, modifier: Modifier = Modifier) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Wraps the old price to its own line when large text leaves no room beside the price.
+    FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = price,
             style = MaterialTheme.typography.headlineSmall,
@@ -244,8 +245,8 @@ private fun Delivery(modifier: Modifier = Modifier) {
 internal fun ProductRowSkeleton(modifier: Modifier = Modifier) {
     // Read in the draw phase only (graphicsLayer below), so the pulse redraws without recomposing every frame.
     val pulse = rememberInfiniteTransition(label = "skeleton").animateFloat(
-        initialValue = 1f,
-        targetValue = 0.5f,
+        initialValue = 0.5f,
+        targetValue = 1f, // where it rests with animations off
         animationSpec = infiniteRepeatable(tween(durationMillis = 800, easing = LinearEasing), RepeatMode.Reverse),
         label = "pulse",
     )

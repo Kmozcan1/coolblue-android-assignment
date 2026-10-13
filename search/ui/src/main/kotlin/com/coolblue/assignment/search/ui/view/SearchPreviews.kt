@@ -1,5 +1,6 @@
 package com.coolblue.assignment.search.ui.view
 
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.coolblue.assignment.core.domain.result.AppError
@@ -37,25 +38,25 @@ private val loaded = SearchContent.Loaded(query = "iphone", products = listOf(ip
 @PreviewLightDark
 @Composable
 private fun ProductRowPreview() {
-    CoolblueTheme { ProductRow(iphone, onClick = {}) }
+    CoolblueTheme { Surface { ProductRow(iphone, onClick = {}) } }
 }
 
 @PreviewLightDark
 @Composable
 private fun ProductRowPlainPreview() {
-    CoolblueTheme { ProductRow(macbook, onClick = {}) }
+    CoolblueTheme { Surface { ProductRow(macbook, onClick = {}) } }
 }
 
 @PreviewLightDark
 @Composable
 private fun ProductDetailPreview() {
-    CoolblueTheme { ProductDetail(iphone) }
+    CoolblueTheme { Surface { ProductDetail(iphone) } }
 }
 
 @PreviewLightDark
 @Composable
 private fun ProductRowSkeletonPreview() {
-    CoolblueTheme { ProductRowSkeleton() }
+    CoolblueTheme { Surface { ProductRowSkeleton() } }
 }
 
 @PreviewLightDark
@@ -86,6 +87,12 @@ private fun SearchScreenLoadedPreview() {
 @Composable
 private fun SearchScreenRefreshingPreview() {
     CoolblueTheme { SearchScreen(SearchUiState("iphone x", loaded.copy(isRefreshing = true)), onAction = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun SearchScreenEndPreview() {
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(nextPage = null)), onAction = {}) }
 }
 
 @PreviewLightDark
