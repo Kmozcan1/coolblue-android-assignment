@@ -1,6 +1,7 @@
 package com.coolblue.assignment.search.ui.view
 
 import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
@@ -75,34 +78,44 @@ internal fun ProductList(
         gridState.interactionSource.interactions.filterIsInstance<DragInteraction.Start>().collect { focusManager.clearFocus() }
     }
 
-    LazyVerticalGrid(columns = ProductGridCells, state = gridState, modifier = modifier.fillMaxSize()) {
-        // The rule sits above each cell, so in a multi-column line the rules align whatever the cell heights.
-        items(content.products, key = { it.id }) { product ->
-            Column {
-                HorizontalDivider()
-                ProductRow(product = product, onClick = { onProductClick(product.id) })
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyVerticalGrid(columns = ProductGridCells, state = gridState, modifier = Modifier.fillMaxSize()) {
+            // The rule sits above each cell, so in a multi-column line the rules align whatever the cell heights.
+            items(content.products, key = { it.id }) { product ->
+                Column {
+                    HorizontalDivider()
+                    ProductRow(product = product, onClick = { onProductClick(product.id) })
+                }
+            }
+            when {
+                content.isLoadingMore -> fullWidthItem(key = "loading") { ProductRowSkeleton() }
+                content.loadMoreError != null -> fullWidthItem(key = "error") {
+                    StatusMessage(
+                        title = stringResource(R.string.load_more_error),
+                        detail = stringResource(content.loadMoreError.messageRes()),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        actionLabel = stringResource(R.string.retry),
+                        onAction = onRetry,
+                    )
+                }
+                content.nextPage == null -> fullWidthItem(key = "end") {
+                    val count = content.products.size
+                    Text(
+                        text = pluralStringResource(R.plurals.list_end, count, count),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+                    )
+                }
             }
         }
-        when {
-            content.isLoadingMore -> fullWidthItem(key = "loading") { ProductRowSkeleton() }
-            content.loadMoreError != null -> fullWidthItem(key = "error") {
-                StatusMessage(
-                    title = stringResource(R.string.load_more_error),
-                    detail = stringResource(content.loadMoreError.messageRes()),
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    actionLabel = stringResource(R.string.retry),
-                    onAction = onRetry,
-                )
-            }
-            content.nextPage == null -> fullWidthItem(key = "end") {
-                val count = content.products.size
-                Text(
-                    text = pluralStringResource(R.plurals.list_end, count, count),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
-                )
-            }
+        // The rows belong to the previous query until the new ones land; the bar says a request is out.
+        if (content.isRefreshing) {
+            // The default track is secondaryContainer, which the theme leaves at Material's purple.
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
         }
     }
 }

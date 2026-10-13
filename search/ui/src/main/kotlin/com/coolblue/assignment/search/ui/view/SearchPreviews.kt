@@ -90,6 +90,12 @@ private fun SearchScreenLoadedPreview() {
 
 @PreviewLightDark
 @Composable
+private fun SearchScreenRefreshingPreview() {
+    CoolblueTheme { SearchScreen(SearchUiState("iphone x", loaded.copy(isRefreshing = true)), onAction = {}) }
+}
+
+@PreviewLightDark
+@Composable
 private fun SearchScreenLoadingMorePreview() {
     CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(isLoadingMore = true)), onAction = {}) }
 }
