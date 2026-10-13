@@ -481,9 +481,9 @@ class SearchViewModelTest {
         coEvery { searchProducts("ipad", 1) } returns page(1, products = listOf(product(10)))
 
         viewModel.onAction(SearchUiAction.Refresh)
-        advanceTimeBy(50)
+        advanceTimeBy(600)
         viewModel.onAction(SearchUiAction.QueryChanged("ipad"))
-        advanceTimeBy(100) // the refresh has landed, the debounce for ipad has not fired yet
+        advanceTimeBy(250) // the refresh has landed (held to 800 ms), the debounce for ipad has not fired yet
 
         val waiting = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(waiting.products.map { it.id }).containsExactly(1)
@@ -491,5 +491,17 @@ class SearchViewModelTest {
 
         advanceUntilIdle()
         assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(10)
+    }
+
+    @Test
+    fun `given a refresh that answers at once, then it shows as refreshing long enough to be seen`() = runTest {
+        val viewModel = loadedViewModel()
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceTimeBy(500)
+
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isRefreshing).isTrue()
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isRefreshing).isFalse()
     }
 }

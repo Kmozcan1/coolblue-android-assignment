@@ -9,6 +9,8 @@ import com.coolblue.assignment.search.domain.usecase.SearchProductsUseCase
 import com.coolblue.assignment.search.ui.mapper.toUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
@@ -135,7 +138,12 @@ internal class SearchViewModel @Inject constructor(
             }
             state.copy(content = loading)
         }
-        val result = searchProducts(query, FIRST_PAGE)
+        val result = if (isRefresh) {
+            // An instant answer would only blink the pull indicator, so it stays up long enough to be seen.
+            takingAtLeast(REFRESH_MIN_MS.milliseconds) { searchProducts(query, FIRST_PAGE) }
+        } else {
+            searchProducts(query, FIRST_PAGE)
+        }
         // Typed on while this was in flight: the debounce will load the newer query, and these rows
         // must not show under it meanwhile. collectLatest only cancels once that debounce fires.
         if (this.query.value != query) return
@@ -195,5 +203,12 @@ internal class SearchViewModel @Inject constructor(
         const val KEY_QUERY = "query"
         const val FIRST_PAGE = 1
         const val DEBOUNCE_MS = 300L
+        const val REFRESH_MIN_MS = 800L
     }
+}
+
+/** Runs [block], then waits out whatever is left of [duration]. */
+private suspend fun <T> takingAtLeast(duration: Duration, block: suspend () -> T): T = coroutineScope {
+    val minimum = launch { delay(duration) }
+    block().also { minimum.join() }
 }
