@@ -2,15 +2,16 @@ package com.coolblue.assignment.search.ui.model
 
 import androidx.compose.runtime.Immutable
 
-/** A product ready to draw: prices and rating are already text. */
+/** A product ready to draw. Prices and rating stay numbers, formatted in the app's language when drawn. */
 @Immutable
 data class ProductUiModel(
     val id: Int,
     val name: String,
     val imageUrl: String,
-    val price: String,
-    val listPrice: String?,
-    val rating: String,
+    val priceCents: Int,
+    /** Only when higher than [priceCents]: the old price. */
+    val listPriceCents: Int?,
+    val rating: Double,
     val reviewCount: Int,
     val usps: List<String>,
     val promoText: String?,

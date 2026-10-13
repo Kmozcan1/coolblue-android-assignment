@@ -10,10 +10,17 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+
+    androidResources {
+        // English and Dutch only, also for the libraries' strings; Android 13+ lists them under App languages.
+        localeFilters += listOf("en", "nl")
+        generateLocaleConfig = true
+    }
 }
 
 dependencies {
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat) // per-app language before Android 13
     implementation(libs.coil.core)
     implementation(libs.coil.network.okhttp)
 

@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **44 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **45 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -38,6 +38,8 @@ to the assignment's mock API; its URL is a constant in `core/network`.
   instead: "ipad" shows the iPads and the Apple Pencil, "samsung" shows "No products found".
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
 - Pulling the list down fetches it again.
+- Dutch on a Dutch phone, English otherwise. The flag next to the search field switches, and
+  prices and ratings follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when it is higher than the current one)
   and the next-day delivery promise.
@@ -127,6 +129,7 @@ a newer state. There are no job fields to cancel by hand.
 | Hilt | Dependency injection with compile-time checking. ViewModels get their use case, the repository gets its API, nothing is constructed by hand. |
 | Coil 3 | Image loading for Compose. Shares the OkHttp client with Retrofit. |
 | Compose + Material 3 | The UI toolkit the assignment asks for. |
+| AppCompat | Only for the per-app language: it switches and remembers it on every Android version, where the platform API starts at Android 13. |
 | JUnit 4, MockK, Truth, Turbine | Unit tests, mocking, readable assertions, Flow testing. |
 | MockWebServer | Tests the repository against real HTTP responses, including the actual JSON the API returns. |
 
@@ -143,7 +146,7 @@ a newer state. There are no job fields to cancel by hand.
 - **Nine modules for one screen.** More than the screen needs, but a second feature is three
   more modules and no edits to `search`.
 - **Prices as integer cents.** The API's decimal euros are rounded to `Int` cents once, in the
-  mapper, so the domain never does arithmetic on floats. The UI formats them in the Dutch locale.
+  mapper, so the domain never does arithmetic on floats. The UI formats them in the app's language when it draws them.
 
 ## Tests
 
@@ -152,7 +155,7 @@ a newer state. There are no job fields to cancel by hand.
 | search/domain | `ProductPageTest` | next page from page count |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through |
-| search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
+| search/ui | `ProductUiMapperTest` | list price rule, price and rating formatting in Dutch and English |
 | search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with

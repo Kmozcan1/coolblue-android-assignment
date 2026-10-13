@@ -2,7 +2,11 @@ package com.coolblue.assignment.search.ui.view
 
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.core.ui.theme.CoolblueTheme
 import com.coolblue.assignment.search.ui.model.ProductUiModel
@@ -13,9 +17,9 @@ private val iphone = ProductUiModel(
     id = 1,
     name = "Apple iPhone 6 32GB Grijs",
     imageUrl = "https://image.coolblue.nl/300x750/products/818870",
-    price = "€ 369,00",
-    listPrice = "€ 399,00",
-    rating = "9,1",
+    priceCents = 36900,
+    listPriceCents = 39900,
+    rating = 9.1,
     reviewCount = 952,
     usps = listOf("32 GB opslagcapaciteit", "4,7 inch Retina HD scherm", "iOS 11"),
     promoText = "middenklasse iPhone",
@@ -25,9 +29,9 @@ private val iphone = ProductUiModel(
 private val macbook = iphone.copy(
     id = 2,
     name = "Apple MacBook Air 13,3\" (2017) MQD32N/A",
-    price = "€ 879,00",
-    listPrice = null,
-    rating = "8,7",
+    priceCents = 87900,
+    listPriceCents = null,
+    rating = 8.7,
     reviewCount = 12,
     promoText = null,
     nextDayDelivery = false,
@@ -62,49 +66,68 @@ private fun ProductRowSkeletonPreview() {
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadingPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Loading), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Loading), onAction = {}, onLanguageSelected = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenEmptyPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("xyz", SearchContent.Empty("xyz")), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("xyz", SearchContent.Empty("xyz")), onAction = {}, onLanguageSelected = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenErrorPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Error(AppError.Network)), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Error(AppError.Network)), onAction = {}, onLanguageSelected = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadedPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}, onLanguageSelected = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenRefreshingPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone x", loaded.copy(isRefreshing = true)), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone x", loaded.copy(isRefreshing = true)), onAction = {}, onLanguageSelected = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenEndPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(nextPage = null)), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(nextPage = null)), onAction = {}, onLanguageSelected = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadingMorePreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(isLoadingMore = true)), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded.copy(isLoadingMore = true)), onAction = {}, onLanguageSelected = {}) }
 }
 
 @PreviewLightDark
 @Composable
 private fun SearchScreenLoadMoreErrorPreview() {
     CoolblueTheme {
-        SearchScreen(SearchUiState("iphone", loaded.copy(loadMoreError = AppError.Server(500))), onAction = {})
+        SearchScreen(SearchUiState("iphone", loaded.copy(loadMoreError = AppError.Server(500))), onAction = {}, onLanguageSelected = {})
+    }
+}
+
+@Preview(locale = "nl")
+@Composable
+private fun SearchScreenDutchPreview() {
+    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}, onLanguageSelected = {}) }
+}
+
+@PreviewLightDark
+@Composable
+private fun LanguageTogglePreview() {
+    CoolblueTheme {
+        Surface {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LanguageToggle(AppLanguage.English, expanded = false, onExpandedChange = {}, onSelect = {})
+                LanguageToggle(AppLanguage.Dutch, expanded = true, onExpandedChange = {}, onSelect = {})
+            }
+        }
     }
 }

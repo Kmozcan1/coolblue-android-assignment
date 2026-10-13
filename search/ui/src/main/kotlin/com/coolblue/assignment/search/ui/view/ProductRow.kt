@@ -52,6 +52,8 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.coolblue.assignment.core.ui.theme.CoolblueColors
 import com.coolblue.assignment.search.ui.R
+import com.coolblue.assignment.search.ui.mapper.formatPrice
+import com.coolblue.assignment.search.ui.mapper.formatRating
 import com.coolblue.assignment.search.ui.model.ProductUiModel
 
 // Every CDN image is 300×750 on white with the product centred and filling the width. A 1:2 tile
@@ -86,11 +88,11 @@ internal fun ProductRow(
                 overflow = TextOverflow.Ellipsis,
             )
             product.promoText?.let { PromoKicker(it, Modifier.padding(top = 2.dp)) }
-            Rating(rating = product.rating, reviewCount = product.reviewCount, modifier = Modifier.padding(top = 6.dp))
+            Rating(average = product.rating, reviewCount = product.reviewCount, modifier = Modifier.padding(top = 6.dp))
             Column(modifier = Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 product.usps.take(ROW_USPS).forEach { Usp(it, singleLine = true) }
             }
-            Price(price = product.price, listPrice = product.listPrice, modifier = Modifier.padding(top = 12.dp))
+            Price(priceCents = product.priceCents, listPriceCents = product.listPriceCents, modifier = Modifier.padding(top = 12.dp))
             if (product.nextDayDelivery) Delivery(Modifier.padding(top = 2.dp))
         }
     }
@@ -124,11 +126,11 @@ internal fun ProductDetail(
             modifier = Modifier.padding(top = 20.dp),
         )
         product.promoText?.let { PromoKicker(it, Modifier.padding(top = 4.dp)) }
-        Rating(rating = product.rating, reviewCount = product.reviewCount, modifier = Modifier.padding(top = 8.dp))
+        Rating(average = product.rating, reviewCount = product.reviewCount, modifier = Modifier.padding(top = 8.dp))
         Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             product.usps.forEach { Usp(it, singleLine = false) }
         }
-        Price(price = product.price, listPrice = product.listPrice, modifier = Modifier.padding(top = 16.dp))
+        Price(priceCents = product.priceCents, listPriceCents = product.listPriceCents, modifier = Modifier.padding(top = 16.dp))
         if (product.nextDayDelivery) Delivery(Modifier.padding(top = 4.dp))
     }
 }
@@ -160,7 +162,8 @@ private fun PromoKicker(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Rating(rating: String, reviewCount: Int, modifier: Modifier = Modifier) {
+private fun Rating(average: Double, reviewCount: Int, modifier: Modifier = Modifier) {
+    val rating = formatRating(average, currentAppLanguage().locale)
     val reviews = pluralStringResource(R.plurals.review_count, reviewCount, reviewCount)
     // Read as one phrase with its meaning: the bare "9,1" would otherwise arrive without context.
     val label = stringResource(R.string.rating_a11y, rating, reviews)
@@ -205,15 +208,17 @@ private fun Usp(text: String, singleLine: Boolean) {
 }
 
 @Composable
-private fun Price(price: String, listPrice: String?, modifier: Modifier = Modifier) {
+private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Modifier) {
+    val locale = currentAppLanguage().locale
     // Wraps the old price to its own line when large text leaves no room beside the price.
     FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = price,
+            text = formatPrice(priceCents, locale),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.alignByBaseline(),
         )
-        if (listPrice != null) {
+        if (listPriceCents != null) {
+            val listPrice = formatPrice(listPriceCents, locale)
             // The strike-through has no semantics; say what the figure is so it isn't read as a second price.
             val wasLabel = stringResource(R.string.list_price_a11y, listPrice)
             Text(
