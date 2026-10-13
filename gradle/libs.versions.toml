@@ -4,7 +4,6 @@ kotlin = "2.4.21"
 ksp = "2.3.12"
 hilt = "2.60.1"
 hiltCompose = "1.4.0"
-coreKtx = "1.19.1"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 lifecycle = "2.11.0"
@@ -20,7 +19,6 @@ turbine = "1.2.1"
 truth = "1.4.5"
 
 [libraries]
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
