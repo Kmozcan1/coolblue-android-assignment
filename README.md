@@ -1,9 +1,20 @@
 # Coolblue product search
 
+[![CI](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml/badge.svg)](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml)
+
 An Android app for the Coolblue mobile assignment: type a query, scroll through the matching
 products. Kotlin, Jetpack Compose, one screen.
 
 <img src="docs/screenshot.png" alt="Search results for apple" width="300" />
+
+- **The app does its own searching.** The mock API returns the same catalogue for every term.
+- **Only the newest request counts.** A slow, stale response never overwrites newer results.
+- **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
+- **43 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
+
+From [Architecture](#architecture) down is optional detail. Engineers: start at
+[One request pipeline](#one-request-pipeline), then [Left out on purpose](#left-out-on-purpose).
 
 ## Run it
 
