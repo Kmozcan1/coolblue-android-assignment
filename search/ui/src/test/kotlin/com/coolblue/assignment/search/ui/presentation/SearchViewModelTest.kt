@@ -121,6 +121,15 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `given a saved query, when the view model is created, then content is Loading before the search runs`() = runTest {
+        coEvery { searchProducts("iphone", 1) } returns page(1)
+
+        val viewModel = viewModel(savedQuery = "iphone")
+
+        assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Loading)
+    }
+
+    @Test
     fun `given results on screen, when the query is cleared, then content is Idle at once`() = runTest {
         coEvery { searchProducts("iphone", 1) } returns page(1)
         val viewModel = viewModel()

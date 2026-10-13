@@ -12,6 +12,10 @@ dependencies {
 
 gradlePlugin {
     plugins {
+        register("androidApplication") {
+            id = "coolblue.android.application"
+            implementationClass = "AndroidApplicationConventionPlugin"
+        }
         register("androidLibrary") {
             id = "coolblue.android.library"
             implementationClass = "AndroidLibraryConventionPlugin"

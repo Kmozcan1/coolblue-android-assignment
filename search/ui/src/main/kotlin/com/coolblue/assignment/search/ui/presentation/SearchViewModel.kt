@@ -35,7 +35,13 @@ class SearchViewModel @Inject constructor(
     // Page numbers asked for by Retry and LoadMore.
     private val pageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1)
 
-    private val _uiState = MutableStateFlow(SearchUiState(query = query.value))
+    // A restored query is about to be searched, so the screen opens on the skeleton, not the idle prompt.
+    private val _uiState = MutableStateFlow(
+        SearchUiState(
+            query = query.value,
+            content = if (query.value.isBlank()) SearchContent.Idle else SearchContent.Loading,
+        ),
+    )
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     init {

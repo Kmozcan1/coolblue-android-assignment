@@ -10,14 +10,12 @@ import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Retrofit suspend calls are already main-safe (they run on OkHttp's own threads), so there is
  * no dispatcher switch here. Only the three expected failures are caught; anything else,
  * including CancellationException, keeps propagating so coroutine cancellation works.
  */
-@Singleton
 internal class SearchRepositoryImpl @Inject constructor(
     private val api: SearchApi,
 ) : SearchRepository {

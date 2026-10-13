@@ -9,14 +9,18 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -51,7 +55,9 @@ internal fun SearchScreen(
     // a saved id must not reopen the sheet when its page is fetched again.
     var openProductId by rememberSaveable(uiState.content is SearchContent.Loaded) { mutableStateOf<Int?>(null) }
 
-    Scaffold { padding ->
+    // Edge-to-edge switches off the window's own keyboard resizing, so the keyboard is an inset here:
+    // the grid shrinks above it instead of scrolling under it.
+    Scaffold(contentWindowInsets = ScaffoldDefaults.contentWindowInsets.union(WindowInsets.ime)) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

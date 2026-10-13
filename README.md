@@ -38,7 +38,7 @@ Multi-module Clean Architecture with MVVM and unidirectional data flow. One feat
 split into three layers, plus a few shared modules.
 
 ```
-app             Application, MainActivity, the theme wrapped around the one screen
+app             Application (also Coil's image loader), MainActivity, the theme wrapped around the one screen
 build-logic     Gradle convention plugins, so each module's build file is about ten lines
 core/network    OkHttp, kotlinx-serialization and Retrofit, provided through Hilt
 core/ui         Material 3 theme in Coolblue colours
@@ -167,7 +167,8 @@ The convention plugins in `build-logic` keep each module's build file small.
 | search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
 | search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, duplicate guard, load-more error and retry, cancellation on query change, saved query |
 
-Run them with `./gradlew test`. They also run on every push through GitHub Actions.
+Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
+Android lint.
 
 Every logic unit was written test-first: the failing test, then the smallest implementation
 that makes it pass. Each commit carries its tests with it, and test names read as behaviour

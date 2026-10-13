@@ -53,9 +53,11 @@ internal fun ProductList(
             lastVisible >= gridState.layoutInfo.totalItemsCount - 1 - LOAD_MORE_THRESHOLD
         }
     }
-    // Re-evaluated when the user reaches the end and again after each page lands.
-    // Repeat calls are harmless: the ViewModel ignores LoadMore while loading or on the last page.
-    LaunchedEffect(nearEnd, content.products.size) {
+    // Re-evaluated when the user reaches the end and whenever the content changes: a page landing, a
+    // refined query replacing the rows (possibly with the same number of them), an error clearing.
+    // Repeat calls are harmless: the ViewModel ignores LoadMore while loading, refreshing, showing an
+    // error or on the last page.
+    LaunchedEffect(nearEnd, content) {
         if (nearEnd) onLoadMore()
     }
     // When a refined query's rows land they start at the top. The first value is skipped so a

@@ -1,4 +1,7 @@
 <resources>
-    <!-- Compose draws everything; the platform theme only needs to hide the action bar. -->
-    <style name="Theme.Coolblue" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Compose draws everything; the platform theme only hides the action bar and paints the window
+         (and the system splash) in the same background Compose will draw, so nothing flashes. -->
+    <style name="Theme.Coolblue" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFF4F7FB</item> <!-- LightColors.background -->
+    </style>
 </resources>
