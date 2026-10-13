@@ -27,6 +27,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.coolblue.assignment.search.ui.R
+import com.coolblue.assignment.search.ui.mapper.messageRes
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
@@ -87,6 +88,7 @@ internal fun ProductList(
             content.loadMoreError != null -> fullWidthItem(key = "error") {
                 StatusMessage(
                     title = stringResource(R.string.load_more_error),
+                    detail = stringResource(content.loadMoreError.messageRes()),
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     actionLabel = stringResource(R.string.retry),
                     onAction = onRetry,

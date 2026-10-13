@@ -22,6 +22,9 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 sourceCompatibility = AndroidConfig.JAVA
                 targetCompatibility = AndroidConfig.JAVA
             }
+            testOptions {
+                unitTests.isReturnDefaultValues = true // android.util.Log is a no-op in JVM tests
+            }
         }
 
         dependencies {

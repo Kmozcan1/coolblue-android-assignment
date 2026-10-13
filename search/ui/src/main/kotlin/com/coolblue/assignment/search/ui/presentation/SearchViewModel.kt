@@ -23,7 +23,7 @@ import javax.inject.Inject
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
-class SearchViewModel @Inject constructor(
+internal class SearchViewModel @Inject constructor(
     private val searchProducts: SearchProductsUseCase,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {

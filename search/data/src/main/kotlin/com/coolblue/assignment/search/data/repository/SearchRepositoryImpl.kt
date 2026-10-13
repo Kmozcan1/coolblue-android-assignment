@@ -1,5 +1,6 @@
 package com.coolblue.assignment.search.data.repository
 
+import android.util.Log
 import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.core.domain.result.AppResult
 import com.coolblue.assignment.search.data.api.SearchApi
@@ -15,7 +16,7 @@ import javax.inject.Inject
  * Retrofit suspend calls are already main-safe (they run on OkHttp's own threads), so there is
  * no dispatcher switch here. Network and HTTP failures get their own cases; anything else that
  * goes wrong (a body that will not parse, a surprise from the stack) is Unknown rather than a
- * crash. CancellationException is rethrown so coroutine cancellation keeps working.
+ * crash, and is logged, since the Unknown case carries nothing else to debug with. CancellationException is rethrown so coroutine cancellation keeps working.
  */
 internal class SearchRepositoryImpl @Inject constructor(
     private val api: SearchApi,
@@ -30,6 +31,9 @@ internal class SearchRepositoryImpl @Inject constructor(
     } catch (e: HttpException) {
         AppResult.Failure(AppError.Server(e.code()))
     } catch (e: Exception) {
+        Log.w(TAG, "search(query=$query, page=$page) failed", e)
         AppResult.Failure(AppError.Unknown)
     }
 }
+
+private const val TAG = "SearchRepository"
