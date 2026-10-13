@@ -23,6 +23,12 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             buildFeatures {
                 compose = true
             }
+            // R8 for release: Compose is markedly slower unshrunk. The libraries ship their own keep rules.
+            buildTypes.getByName("release") {
+                isMinifyEnabled = true
+                isShrinkResources = true
+                proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            }
         }
     }
 }
