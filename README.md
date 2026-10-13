@@ -40,6 +40,7 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 - Pulling the list down fetches it again.
 - Dutch on a Dutch phone, English otherwise. The flag next to the search field switches, and
   prices, ratings and counts follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
+  Product names and USPs stay Dutch, as the API sends them; see [Trade-offs](#trade-offs).
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when it is higher than the current one)
   and the next-day delivery promise.
@@ -146,6 +147,10 @@ a newer state. There are no job fields to cancel by hand.
   more modules and no edits to `search`.
 - **Prices as integer cents.** The API's decimal euros are rounded to `Int` cents once, in the
   mapper, so the domain never does arithmetic on floats. The UI formats them in the app's language when it draws them.
+- **A Dutch/English switch the assignment doesn't ask for.** Added because it was cheap and there
+  was time. The app's own words, prices, ratings and counts switch; product names, USPs and promo
+  labels stay Dutch, because the mock API only sends them in Dutch. This assumes a working
+  backend would send them in both languages.
 
 ## Tests
 
