@@ -60,12 +60,6 @@ private fun ProductRowSkeletonPreview() {
 
 @PreviewLightDark
 @Composable
-private fun SearchScreenIdlePreview() {
-    CoolblueTheme { SearchScreen(SearchUiState(), onAction = {}) }
-}
-
-@PreviewLightDark
-@Composable
 private fun SearchScreenLoadingPreview() {
     CoolblueTheme { SearchScreen(SearchUiState("iphone", SearchContent.Loading), onAction = {}) }
 }

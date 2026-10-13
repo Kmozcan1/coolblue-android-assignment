@@ -12,18 +12,10 @@ import androidx.compose.ui.unit.sp
 private val Condensed = FontFamily(Font(DeviceFontFamilyName("sans-serif-condensed"), FontWeight.Bold))
 
 /**
- * Two faces. The condensed display is used in exactly two places, the price and the idle headline;
- * the default sans does everything else. Only the styles the screens use are set, the rest stay Material's.
+ * Two faces. The condensed display is used in exactly one place, the price; the default sans does
+ * everything else. Only the styles the screens use are set, the rest stay Material's.
  */
 internal val CoolblueTypography = Typography(
-    // Idle headline
-    displaySmall = TextStyle(
-        fontFamily = Condensed,
-        fontWeight = FontWeight.Bold,
-        fontSize = 30.sp,
-        lineHeight = 34.sp,
-        letterSpacing = (-0.3).sp,
-    ),
     // Price. Tabular figures, so "€ 1.079,00" and "€ 99,00" share digit widths.
     headlineSmall = TextStyle(
         fontFamily = Condensed,

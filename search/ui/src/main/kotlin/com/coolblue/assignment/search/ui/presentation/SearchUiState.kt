@@ -8,14 +8,12 @@ import com.coolblue.assignment.search.ui.model.ProductUiModel
 @Immutable
 internal data class SearchUiState(
     val query: String = "",
-    val content: SearchContent = SearchContent.Idle,
+    val content: SearchContent = SearchContent.Loading,
 )
 
 /** What the area under the search field shows. Exactly one of these at a time. */
 @Immutable
 internal sealed interface SearchContent {
-    data object Idle : SearchContent
-
     data object Loading : SearchContent
 
     /** The query returned nothing. Carries that query: the field may already hold a newer one. */

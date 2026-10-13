@@ -7,7 +7,6 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,11 +16,9 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,7 +36,7 @@ import com.coolblue.assignment.search.ui.presentation.SearchContent
 import com.coolblue.assignment.search.ui.presentation.SearchUiAction
 import com.coolblue.assignment.search.ui.presentation.SearchUiState
 
-/** Where the idle, empty and error blocks sit: under the field, anchored top-left like the rows. */
+/** Where the empty and error blocks sit: under the field, anchored top-left like the rows. */
 private val StatusPadding = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
 
 /** Stateless: everything comes in through [uiState], everything goes out through [onAction]. */
@@ -87,7 +84,6 @@ internal fun SearchScreen(
                 label = "content",
             ) { content ->
                 when (content) {
-                    SearchContent.Idle -> IdlePrompt()
                     SearchContent.Loading -> LoadingList()
                     is SearchContent.Empty -> StatusMessage(
                         title = stringResource(R.string.search_empty, content.query),
@@ -119,19 +115,6 @@ internal fun SearchScreen(
         ) {
             ProductDetail(openProduct)
         }
-    }
-}
-
-/** Blank query: a headline and one line of guidance. */
-@Composable
-private fun IdlePrompt() {
-    Column(modifier = StatusPadding, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = stringResource(R.string.search_idle_title), style = MaterialTheme.typography.displaySmall)
-        Text(
-            text = stringResource(R.string.search_idle_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

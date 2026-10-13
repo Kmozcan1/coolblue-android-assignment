@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **36 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **37 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -30,7 +30,8 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 
 ## What it does
 
-- Search as you type, debounced by 300 ms. A blank field shows a prompt instead of a list.
+- The app opens on the whole catalogue. Typing searches, debounced by 300 ms, and clearing the
+  field brings the catalogue back.
 - The query goes to the API with every page request and the list shows what comes back. The
   assignment's API is a mock that returns the same catalogue for every search term, so every
   query lists the same products. The [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch searches in the app
@@ -82,9 +83,9 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
 - The screen is stateless. It receives one `SearchUiState` and sends `SearchUiAction`s back.
   Nothing else crosses that boundary, so the screen can be previewed in every state without a
   ViewModel.
-- `SearchUiState` holds the query and a sealed `SearchContent`: `Idle`, `Loading`, `Empty`,
-  `Error` or `Loaded`. Exactly one is active, so there is no combination of booleans that can
-  disagree with each other.
+- `SearchUiState` holds the query and a sealed `SearchContent`: `Loading`, `Empty`, `Error` or
+  `Loaded`. Exactly one is active, so there is no combination of booleans that can disagree
+  with each other.
 - Tapping a row opens the same product in a bottom sheet, nothing clipped, every USP. Which
   sheet is open is screen-local `rememberSaveable` state, not part of `SearchUiState`: it is
   transient chrome over a product the `Loaded` content already holds. A query change closes it,
@@ -147,7 +148,7 @@ a newer state. There are no job fields to cancel by hand.
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through |
 | search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
-| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated by the next page, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, clear to idle, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query |
+| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
 Android lint.

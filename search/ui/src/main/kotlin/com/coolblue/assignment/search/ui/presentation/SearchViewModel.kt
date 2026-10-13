@@ -35,13 +35,9 @@ internal class SearchViewModel @Inject constructor(
 
     private val pageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1)
 
-    // A restored query is about to be searched, so the screen opens on the skeleton, not the idle prompt.
-    private val _uiState = MutableStateFlow(
-        SearchUiState(
-            query = query.value,
-            content = if (query.value.isBlank()) SearchContent.Idle else SearchContent.Loading,
-        ),
-    )
+    // The query is searched as soon as the debounce passes (the whole catalogue while it is blank), so
+    // the screen opens on the skeleton.
+    private val _uiState = MutableStateFlow(SearchUiState(query = query.value, content = SearchContent.Loading))
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     init {
@@ -71,8 +67,6 @@ internal class SearchViewModel @Inject constructor(
             state.copy(
                 query = newQuery,
                 content = when {
-                    // A cleared field shows the prompt at once instead of after the debounce.
-                    newQuery.isBlank() -> SearchContent.Idle
                     // From this keystroke the rows belong to the previous query, so LoadMore must not
                     // fetch the new query's page 2 under them during the debounce. Edited back to the
                     // query the rows answer: nothing is coming (the query flow conflates it away), so
@@ -100,23 +94,20 @@ internal class SearchViewModel @Inject constructor(
                 pageRequests.tryEmit(content.nextPage)
             }
 
-            SearchContent.Idle, SearchContent.Loading, is SearchContent.Empty -> Unit
+            SearchContent.Loading, is SearchContent.Empty -> Unit
         }
     }
 
     private suspend fun load(query: String, page: Int) {
-        if (query.isBlank()) {
-            _uiState.update { it.copy(content = SearchContent.Idle) }
-            return
-        }
         if (page == FIRST_PAGE) loadFirstPage(query) else loadNextPage(query, page)
     }
 
     private suspend fun loadFirstPage(query: String) {
         val current = _uiState.value.content
         if (current is SearchContent.Loaded && current.query == query) {
-            // Edited away and back within the debounce: the rows on screen already answer this query.
-            updateLoaded { it.copy(isRefreshing = false) }
+            // Edited away and back: the rows on screen already answer this query. A load-more that was in
+            // flight has just been cancelled by collectLatest, so its spinner goes too; the list asks again.
+            updateLoaded { it.copy(isRefreshing = false, isLoadingMore = false) }
             return
         }
         // Rows already on screen stay while a refined query loads; only a cold start shows the skeleton.

@@ -16,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -42,13 +43,16 @@ class SearchViewModelTest {
         AppResult.Success(ProductPage(products = products, page = page, pageCount = pageCount))
 
     @Test
-    fun `given a blank query, then content is Idle and nothing is requested`() = runTest {
+    fun `given no query, when the screen opens, then it shows Loading and then the whole catalogue`() = runTest {
+        coEvery { searchProducts("", 1) } returns page(1)
         val viewModel = viewModel()
 
+        assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Loading)
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Idle)
-        coVerify(exactly = 0) { searchProducts(any(), any()) }
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.query).isEmpty()
+        assertThat(loaded.products.map { it.id }).containsExactly(1)
     }
 
     @Test
@@ -73,10 +77,11 @@ class SearchViewModelTest {
         val viewModel = viewModel()
 
         viewModel.uiState.test {
-            assertThat(awaitItem().content).isEqualTo(SearchContent.Idle)
-            viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
-            assertThat(awaitItem().query).isEqualTo("iphone")
             assertThat(awaitItem().content).isEqualTo(SearchContent.Loading)
+            viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
+            val typed = awaitItem()
+            assertThat(typed.query).isEqualTo("iphone")
+            assertThat(typed.content).isEqualTo(SearchContent.Loading)
             val loaded = awaitItem().content as SearchContent.Loaded
             assertThat(loaded.products.map { it.id }).containsExactly(1)
             assertThat(loaded.nextPage).isEqualTo(2)
@@ -144,15 +149,25 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `given results on screen, when the query is cleared, then content is Idle at once`() = runTest {
+    fun `given results on screen, when the query is cleared, then the rows stay until the whole catalogue lands`() = runTest {
         coEvery { searchProducts("iphone", 1) } returns page(1)
+        coEvery { searchProducts("", 1) } returns page(1, products = listOf(product(7)))
         val viewModel = viewModel()
         viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
         advanceUntilIdle()
 
         viewModel.onAction(SearchUiAction.QueryChanged(""))
 
-        assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Idle)
+        val refreshing = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(refreshing.products.map { it.id }).containsExactly(1)
+        assertThat(refreshing.isRefreshing).isTrue()
+
+        advanceUntilIdle()
+
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.query).isEmpty()
+        assertThat(loaded.products.map { it.id }).containsExactly(7)
+        assertThat(loaded.isRefreshing).isFalse()
     }
 
     private fun loadedViewModel(): SearchViewModel {
@@ -187,6 +202,27 @@ class SearchViewModelTest {
 
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(loaded.products.map { it.id }).containsExactly(1, 2).inOrder()
+    }
+
+    @Test
+    fun `given a load more in flight, when the query is edited and edited back, then LoadMore works again`() = runTest {
+        coEvery { searchProducts("", 1) } returns page(1)
+        coEvery { searchProducts("", 2) } coAnswers { delay(1_000); page(2) }
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.onAction(SearchUiAction.LoadMore)
+        runCurrent()
+
+        viewModel.onAction(SearchUiAction.QueryChanged("a"))
+        runCurrent()
+        advanceTimeBy(100)
+        viewModel.onAction(SearchUiAction.QueryChanged(""))
+        advanceTimeBy(400) // the debounce sends "" again, which cancels the load more
+
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).isLoadingMore).isFalse()
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+        assertThat((viewModel.uiState.value.content as SearchContent.Loaded).products.map { it.id }).containsExactly(1, 2).inOrder()
     }
 
     @Test
@@ -284,14 +320,15 @@ class SearchViewModelTest {
     @Test
     fun `given the first page is in flight, when the query is cleared, then its late result is dropped`() = runTest {
         coEvery { searchProducts("iphone", 1) } coAnswers { delay(400); page(1) }
+        coEvery { searchProducts("", 1) } returns page(1, products = listOf(product(7)))
         val viewModel = viewModel()
         viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
         advanceTimeBy(500) // past the debounce, the request is in flight
 
         viewModel.onAction(SearchUiAction.QueryChanged(""))
-        advanceTimeBy(250) // the response has landed, the debounce for the blank query has not fired yet
+        advanceTimeBy(250) // the response has landed, the debounce for the cleared query has not fired yet
 
-        assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Idle)
+        assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Loading)
     }
 
     @Test
