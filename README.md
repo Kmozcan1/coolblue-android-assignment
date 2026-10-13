@@ -134,8 +134,9 @@ happens once, in the UI mapper, with the Dutch locale (`€ 369,00`).
 
 **A sealed `AppError` with three cases.** `Network`, `Server(code)` and `Unknown` are the only
 distinctions the UI acts on. The error never carries the exception, so states stay comparable
-in tests. Only those three failures are caught in the repository; `CancellationException` is
-left alone so coroutine cancellation keeps working.
+in tests. `Network` and `Server` come from `IOException` and `HttpException`; anything else the
+stack throws, including a body that will not parse, becomes `Unknown` instead of a crash.
+`CancellationException` is rethrown so coroutine cancellation keeps working.
 
 **No dispatcher switch in the repository.** Retrofit's suspend functions already run on OkHttp's
 own threads, so `withContext(Dispatchers.IO)` would add nothing.
@@ -161,11 +162,11 @@ The convention plugins in `build-logic` keep each module's build file small.
 | Module | Test | Covers |
 |---|---|---|
 | search/domain | `ProductPageTest` | next page from page count |
-| search/domain | `SearchProductsUseCaseTest` | name and USP matching, every word must match, case-insensitive, blank query, skipping empty pages, last page empty, failure pass-through |
+| search/domain | `SearchProductsUseCaseTest` | name and USP matching, every word must match, case-insensitive, blank query, skipping one or two empty pages, last page empty, failure pass-through |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
-| search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON, query parameters, 500, no connection, bad JSON |
+| search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through |
 | search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
-| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, duplicate guard, load-more error and retry, cancellation on query change, saved query |
+| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, duplicate guard, load-more error and retry, cancellation on query change, saved query and restore, clear to idle, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
 Android lint.

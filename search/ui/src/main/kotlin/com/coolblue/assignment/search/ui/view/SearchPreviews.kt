@@ -32,7 +32,7 @@ private val macbook = iphone.copy(
     nextDayDelivery = false,
 )
 
-private val loaded = SearchContent.Loaded(products = listOf(iphone, macbook), nextPage = 2)
+private val loaded = SearchContent.Loaded(query = "iphone", products = listOf(iphone, macbook), nextPage = 2)
 
 @PreviewLightDark
 @Composable
@@ -73,7 +73,7 @@ private fun SearchScreenLoadingPreview() {
 @PreviewLightDark
 @Composable
 private fun SearchScreenEmptyPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("xyz", SearchContent.Empty), onAction = {}) }
+    CoolblueTheme { SearchScreen(SearchUiState("xyz", SearchContent.Empty("xyz")), onAction = {}) }
 }
 
 @PreviewLightDark

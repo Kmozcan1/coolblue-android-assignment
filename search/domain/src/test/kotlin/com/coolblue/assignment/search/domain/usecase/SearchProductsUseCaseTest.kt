@@ -78,6 +78,19 @@ class SearchProductsUseCaseTest {
     }
 
     @Test
+    fun `given two pages without a match before one with, when searching page 1, then page 3 comes back`() = runTest {
+        coEvery { repository.search("ipad", 1) } returns page(listOf(iphone), page = 1, pageCount = 3)
+        coEvery { repository.search("ipad", 2) } returns page(listOf(cover), page = 2, pageCount = 3)
+        coEvery { repository.search("ipad", 3) } returns page(listOf(ipad), page = 3, pageCount = 3)
+
+        val result = useCase("ipad", 1) as AppResult.Success
+
+        assertThat(result.data.products).containsExactly(ipad)
+        assertThat(result.data.page).isEqualTo(3)
+        assertThat(result.data.nextPage).isNull()
+    }
+
+    @Test
     fun `given no page matches, when searching, then the last page comes back empty`() = runTest {
         coEvery { repository.search("samsung", 1) } returns page(listOf(iphone), page = 1, pageCount = 2)
         coEvery { repository.search("samsung", 2) } returns page(listOf(ipad), page = 2, pageCount = 2)

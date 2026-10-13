@@ -89,8 +89,8 @@ internal fun SearchScreen(
                 when (content) {
                     SearchContent.Idle -> IdlePrompt()
                     SearchContent.Loading -> LoadingList()
-                    SearchContent.Empty -> StatusMessage(
-                        title = stringResource(R.string.search_empty, uiState.query),
+                    is SearchContent.Empty -> StatusMessage(
+                        title = stringResource(R.string.search_empty, content.query),
                         detail = stringResource(R.string.search_empty_hint),
                         modifier = StatusPadding,
                     )

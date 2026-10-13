@@ -63,6 +63,7 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun onQueryChanged(newQuery: String) {
+        if (newQuery == _uiState.value.query) return // nothing changed, so nothing to refresh
         savedStateHandle[KEY_QUERY] = newQuery
         // Updated synchronously so the text field never lags behind the keyboard.
         _uiState.update { state ->
@@ -73,8 +74,10 @@ class SearchViewModel @Inject constructor(
                     // A cleared field shows the prompt at once instead of after the debounce.
                     newQuery.isBlank() -> SearchContent.Idle
                     // From this keystroke the rows belong to the previous query, so LoadMore must not
-                    // fetch the new query's page 2 under them during the debounce.
-                    content is SearchContent.Loaded -> content.copy(isRefreshing = true)
+                    // fetch the new query's page 2 under them during the debounce. Edited back to the
+                    // query the rows answer: nothing is coming (the query flow conflates it away), so
+                    // nothing to wait for.
+                    content is SearchContent.Loaded -> content.copy(isRefreshing = content.query != newQuery)
                     else -> content
                 },
             )
@@ -92,10 +95,11 @@ class SearchViewModel @Inject constructor(
     private fun retry() {
         when (val content = _uiState.value.content) {
             is SearchContent.Error -> pageRequests.tryEmit(FIRST_PAGE)
-            is SearchContent.Loaded -> if (content.loadMoreError != null && content.nextPage != null) {
+            // Not while refreshing: page N would belong to the query being typed, not to these rows.
+            is SearchContent.Loaded -> if (content.loadMoreError != null && content.nextPage != null && !content.isRefreshing) {
                 pageRequests.tryEmit(content.nextPage)
             }
-            else -> Unit
+            SearchContent.Idle, SearchContent.Loading, is SearchContent.Empty -> Unit
         }
     }
 
@@ -108,6 +112,12 @@ class SearchViewModel @Inject constructor(
     }
 
     private suspend fun loadFirstPage(query: String) {
+        val current = _uiState.value.content
+        if (current is SearchContent.Loaded && current.query == query) {
+            // Edited away and back within the debounce: the rows on screen already answer this query.
+            updateLoaded { it.copy(isRefreshing = false) }
+            return
+        }
         // Rows already on screen stay while a refined query loads; only a cold start shows the skeleton.
         // (onQueryChanged already set isRefreshing; this also drops a cancelled load-more's state.)
         _uiState.update { state ->
@@ -120,9 +130,12 @@ class SearchViewModel @Inject constructor(
             state.copy(content = loading)
         }
         val content = when (val result = searchProducts(query, FIRST_PAGE)) {
-            is AppResult.Success -> result.data.toContent()
+            is AppResult.Success -> result.data.toContent(query)
             is AppResult.Failure -> SearchContent.Error(result.error)
         }
+        // Typed on while this was in flight: the debounce will load the newer query, and these rows
+        // must not show under it meanwhile. collectLatest only cancels once that debounce fires.
+        if (this.query.value != query) return
         _uiState.update { it.copy(content = content) }
     }
 
@@ -148,11 +161,11 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    private fun ProductPage.toContent(): SearchContent =
+    private fun ProductPage.toContent(query: String): SearchContent =
         if (products.isEmpty()) {
-            SearchContent.Empty
+            SearchContent.Empty(query)
         } else {
-            SearchContent.Loaded(products = products.map { it.toUiModel() }, nextPage = nextPage)
+            SearchContent.Loaded(query = query, products = products.map { it.toUiModel() }, nextPage = nextPage)
         }
 
     private companion object {

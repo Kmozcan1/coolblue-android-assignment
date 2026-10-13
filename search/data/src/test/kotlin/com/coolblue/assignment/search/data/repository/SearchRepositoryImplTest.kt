@@ -1,11 +1,13 @@
 package com.coolblue.assignment.search.data.repository
 
+import com.coolblue.assignment.core.network.NetworkModule
 import com.coolblue.assignment.search.data.api.SearchApi
+import com.coolblue.assignment.search.data.api.SearchResponseDto
 import com.coolblue.assignment.search.domain.result.AppError
 import com.coolblue.assignment.search.domain.result.AppResult
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import okhttp3.MediaType.Companion.toMediaType
@@ -24,7 +26,7 @@ class SearchRepositoryImplTest {
     @Before
     fun setUp() {
         server.start()
-        val json = Json { ignoreUnknownKeys = true }
+        val json = NetworkModule.provideJson() // the production configuration, not a copy of it
         val retrofit = Retrofit.Builder()
             .baseUrl(server.url("/"))
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
@@ -47,8 +49,15 @@ class SearchRepositoryImplTest {
         assertThat(page.products).hasSize(24)
         assertThat(page.page).isEqualTo(1)
         assertThat(page.pageCount).isEqualTo(3)
-        assertThat(page.products.first().name).isEqualTo("Apple iPhone 6 32GB Grijs")
-        assertThat(page.products.first().salesPriceCents).isEqualTo(36900)
+        val first = page.products.first()
+        assertThat(first.name).isEqualTo("Apple iPhone 6 32GB Grijs")
+        assertThat(first.salesPriceCents).isEqualTo(36900)
+        assertThat(first.listPriceCents).isNull()
+        assertThat(first.reviewAverage).isEqualTo(9.1)
+        assertThat(first.reviewCount).isEqualTo(952)
+        assertThat(first.usps).containsExactly("32 GB opslagcapaciteit", "4,7 inch Retina HD scherm", "iOS 11").inOrder()
+        assertThat(first.promoText).isEqualTo("middenklasse iPhone")
+        assertThat(first.nextDayDelivery).isTrue()
     }
 
     @Test
@@ -88,6 +97,26 @@ class SearchRepositoryImplTest {
         val result = repository.search("apple", 1)
 
         assertThat(result).isEqualTo(AppResult.Failure(AppError.Unknown))
+    }
+
+    @Test
+    fun `given the api throws something unexpected, when searching, then the failure is Unknown`() = runTest {
+        val repository = SearchRepositoryImpl(throwing { IllegalStateException("not one of the known failures") })
+
+        assertThat(repository.search("apple", 1)).isEqualTo(AppResult.Failure(AppError.Unknown))
+    }
+
+    @Test
+    fun `given the call is cancelled, when searching, then the cancellation is not swallowed`() = runTest {
+        val repository = SearchRepositoryImpl(throwing { CancellationException("cancelled") })
+
+        val thrown = runCatching { repository.search("apple", 1) }.exceptionOrNull()
+
+        assertThat(thrown).isInstanceOf(CancellationException::class.java)
+    }
+
+    private fun throwing(exception: () -> Throwable) = object : SearchApi {
+        override suspend fun search(query: String, page: Int): SearchResponseDto = throw exception()
     }
 
     private fun fixture(name: String): String =

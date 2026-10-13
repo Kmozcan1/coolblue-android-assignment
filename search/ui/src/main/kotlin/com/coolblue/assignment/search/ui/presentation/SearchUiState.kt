@@ -17,14 +17,16 @@ sealed interface SearchContent {
     /** First page in flight. */
     data object Loading : SearchContent
 
-    /** The query returned nothing. */
-    data object Empty : SearchContent
+    /** The query returned nothing. Carries that query: the field may already hold a newer one. */
+    data class Empty(val query: String) : SearchContent
 
     /** The first page failed. */
     data class Error(val error: AppError) : SearchContent
 
     /** At least one page is on screen. Load-more state travels with it so the rows stay. */
     data class Loaded(
+        /** The query these rows answer; the field may already hold a newer one. */
+        val query: String,
         val products: List<ProductUiModel>,
         val nextPage: Int?,
         val isLoadingMore: Boolean = false,

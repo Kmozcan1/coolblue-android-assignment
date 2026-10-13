@@ -6,15 +6,16 @@ import com.coolblue.assignment.search.domain.model.ProductPage
 import com.coolblue.assignment.search.domain.repository.SearchRepository
 import com.coolblue.assignment.search.domain.result.AppError
 import com.coolblue.assignment.search.domain.result.AppResult
-import kotlinx.serialization.SerializationException
+import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 
 /**
  * Retrofit suspend calls are already main-safe (they run on OkHttp's own threads), so there is
- * no dispatcher switch here. Only the three expected failures are caught; anything else,
- * including CancellationException, keeps propagating so coroutine cancellation works.
+ * no dispatcher switch here. Network and HTTP failures get their own cases; anything else that
+ * goes wrong (a body that will not parse, a surprise from the stack) is Unknown rather than a
+ * crash. CancellationException is rethrown so coroutine cancellation keeps working.
  */
 internal class SearchRepositoryImpl @Inject constructor(
     private val api: SearchApi,
@@ -22,11 +23,13 @@ internal class SearchRepositoryImpl @Inject constructor(
 
     override suspend fun search(query: String, page: Int): AppResult<ProductPage> = try {
         AppResult.Success(api.search(query, page).toDomain())
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: IOException) {
         AppResult.Failure(AppError.Network)
     } catch (e: HttpException) {
         AppResult.Failure(AppError.Server(e.code()))
-    } catch (e: SerializationException) {
+    } catch (e: Exception) {
         AppResult.Failure(AppError.Unknown)
     }
 }
