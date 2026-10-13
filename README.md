@@ -2,15 +2,16 @@
 
 [![CI](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml/badge.svg)](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml)
 
-An Android app for the Coolblue mobile assignment: type a query, scroll through the matching
-products. Kotlin, Jetpack Compose, one screen.
+An Android app for the Coolblue mobile assignment: type a query, scroll through the results.
+Kotlin, Jetpack Compose, one screen.
 
 <img src="docs/screenshot.png" alt="Search results for apple" width="300" />
 
-- **The app does its own searching.** The mock API returns the same catalogue for every term.
+- **The mock API ignores the search term.** The app shows what it returns; a version that searches
+  in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **43 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **35 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start at
@@ -30,12 +31,11 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 ## What it does
 
 - Search as you type, debounced by 300 ms. A blank field shows a prompt instead of a list.
-- The assignment's API is mocked and returns the same catalogue for every search term, so the
-  app does the searching itself: a product matches when its name or one of its USPs contains
-  every word of the query, case-insensitive. "ipad" shows the iPads and the Apple Pencil,
-  "iphone 64gb" only the 64 GB iPhones, "samsung" shows "No products found".
+- The query goes to the API with every page request and the list shows what comes back. The
+  assignment's API is a mock that returns the same catalogue for every search term, so every
+  query lists the same products. The [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch searches in the app
+  instead: "ipad" shows the iPads and the Apple Pencil, "samsung" shows "No products found".
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
-  Pages with no matching product are skipped automatically.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
   label, the price (with the old price struck through when it is higher than the current one)
   and the next-day delivery promise.
@@ -127,15 +127,13 @@ can be introduced at the data layer if the catalogue ever grows. The last page i
 `pageCount` on purpose: the API repeats the last page for any page number beyond it, so an
 empty response never comes.
 
-**Searching happens in the use case.** The API ignores the search term, and the PDF says so.
-Rather than ship a search box that does nothing, `SearchProductsUseCase` filters each page by
-the query and skips pages that filter down to nothing, so the ViewModel always receives rows or
-the last page. The ViewModel, the repository and the UI don't know this happens. The filter is
-deliberately not in the ViewModel or the repository: the use case is the place for business
-logic between screen and data, and with a backend that searches, this class goes back to a
-single repository call and nothing else changes. Fetching the whole catalogue up front and
-filtering locally was rejected because it would throw away the paging and is the one shape
-you'd never ship against a real search API.
+**Main shows what the API returns; in-app search is a branch.** The API ignores the search
+term, and the PDF says so. Whether the app should search the catalogue itself is a product
+call, so main sends the query and shows the response, as it would against a real search
+backend. The `in-app-search` branch is [one commit on top of main](https://github.com/Kmozcan1/coolblue-android-assignment/compare/main...in-app-search): `SearchProductsUseCase`
+filters each page by name and USPs and skips pages that filter down to nothing. That commit
+touches only `search/domain` and this README; the ViewModel, the repository and the UI stay
+untouched. That is why main keeps the use case even though it is a single repository call.
 
 **Product images are cropped to a 1:2 tile.** Every image the API links to is 300×750 on white
 with the product centred and filling the width; measured across phones, tablets, a watch, a
@@ -180,7 +178,6 @@ its own plugin, applied only by the modules that have bindings or injection poin
 | Module | Test | Covers |
 |---|---|---|
 | search/domain | `ProductPageTest` | next page from page count |
-| search/domain | `SearchProductsUseCaseTest` | name and USP matching, every word must match, case-insensitive, blank query, skipping one or two empty pages, last page empty, failure pass-through |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through |
 | search/ui | `ProductUiMapperTest` | Dutch price and rating formatting, list price rule |
