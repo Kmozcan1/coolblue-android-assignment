@@ -2,16 +2,15 @@
 
 [![CI](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml/badge.svg)](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml)
 
-An Android app for the Coolblue mobile assignment: type a query, scroll through the results.
-Kotlin, Jetpack Compose, one screen.
+An Android app for the Coolblue mobile assignment: type a query, scroll through the matching
+products. Kotlin, Jetpack Compose, one screen.
 
 <img src="docs/screenshot.png" alt="Search results for apple" width="300" />
 
-- **The mock API ignores the search term.** The app shows what it returns; a version that searches
-  in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
+- **The app does its own searching.** The mock API returns the same catalogue for every term.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **58 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **66 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -32,7 +31,11 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 
 - Opens on the whole catalogue. Typing searches (debounced by 300 ms); clearing the field brings
   the catalogue back.
-- Pages of 24 load as you scroll; pulling the list down fetches it again.
+- The app does the searching, since the mock API ignores the term: a product matches when every
+  word of the query is in its name or a USP, case-insensitive. "ipad" shows the iPads and their
+  accessories, "samsung" shows "Geen producten gevonden".
+- Pages of 24 load as you scroll, skipping pages with no match; pulling the list down fetches it
+  again.
 - The search field slides away as the list scrolls down and comes back on scroll up.
 - Tapping a row opens the full product in a bottom sheet.
 - Every error offers a retry; a failed later page or refresh keeps the rows on screen.
@@ -128,11 +131,10 @@ a newer state. There are no job fields to cancel by hand.
 
 ## Trade-offs
 
-- **The app shows what the API returns.** The mock ignores the search term, so whether the app
-  should search the catalogue itself is a product call. The `in-app-search` branch does, in
-  [one commit on top of main](https://github.com/Kmozcan1/coolblue-android-assignment/compare/main...in-app-search) that touches only `search/domain` and this README. Main
-  keeps the use case, though it is a single repository call, so turning in-app search on never
-  touches the ViewModel.
+- **Searching happens in the use case.** The mock ignores the search term, so
+  `SearchProductsUseCase` filters each page and skips pages that filter down to nothing. The
+  ViewModel, the repository and the UI don't know it happens; against a backend that searches,
+  the use case goes back to a single repository call.
 - **Hand-rolled paging, not Paging 3.** Three pages of 24 don't need it. `ProductPage` maps
   straight onto a `PagingSource`, so the data side of a switch is small; the ViewModel and the
   list would trade their sealed `Paging` state, already shaped like `LoadState.append`, for
@@ -150,6 +152,7 @@ a newer state. There are no job fields to cancel by hand.
 | Module | Test | Covers |
 |---|---|---|
 | search/domain | `ProductPageTest` | next page from page count |
+| search/domain | `SearchProductsUseCaseTest` | name and USP matching, every word must match, case-insensitive, blank query, skipping one or two empty pages, last page empty, failure pass-through |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through, a product with no reviews or explicit nulls, products with no id, name, image or price skipped |
 | search/ui | `ProductUiMapperTest` | list price rule, Dutch price, rating and count formatting |
