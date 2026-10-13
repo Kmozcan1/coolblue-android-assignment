@@ -13,7 +13,8 @@ Open the project in Android Studio (latest stable) and run `app`, or from the co
 ./gradlew assembleDebug test
 ```
 
-Requires Android 8.0 (API 26) or newer.
+Requires Android 8.0 (API 26) or newer on the device and JDK 17 or newer to build. The app talks
+to the assignment's mock API; its URL is a constant in `core/network`.
 
 ## What it does
 
@@ -25,8 +26,8 @@ Requires Android 8.0 (API 26) or newer.
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
   Pages with no matching product are skipped automatically.
 - Each row shows the product image, name, review score and count, up to three USPs, a promo
-  label, the price (with the old price struck through when there is one) and the next-day
-  delivery promise.
+  label, the price (with the old price struck through when it is higher than the current one)
+  and the next-day delivery promise.
 - Errors are shown in place: a message with Retry under the field when the first page fails, a
   footer row with Retry when a later page fails, so the rows already on screen stay.
 - Tapping a row opens the product in a bottom sheet: the full name, every USP, a larger photo.
@@ -70,9 +71,10 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
   sheet is open is screen-local `rememberSaveable` state, not part of `SearchUiState`: it is
   transient chrome over a product the `Loaded` content already holds. A query change closes it,
   and so does a restore after process death, since the search starts over.
-- `Loading` only happens on a cold start. Refining a query keeps the rows on screen with
-  `Loaded.isRefreshing` set until the new rows replace them at the top; `LoadMore` is ignored
-  meanwhile, since page 2 would belong to the new query.
+- `Loading` only shows when there are no rows to keep: a cold start, a restore after process
+  death, Retry after an error, or a refinement from an empty result. Refining a query that has
+  rows keeps them on screen with `Loaded.isRefreshing` set until the new rows replace them at
+  the top; `LoadMore` is ignored meanwhile, since page 2 would belong to the new query.
 - The repository returns `AppResult`: `Success` with data or `Failure` with an `AppError`.
   Exceptions stop at the data layer; the ViewModel only ever sees these two cases.
 
