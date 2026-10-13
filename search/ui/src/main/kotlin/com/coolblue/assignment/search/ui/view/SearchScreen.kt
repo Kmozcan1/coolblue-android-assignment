@@ -33,9 +33,11 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,6 +47,7 @@ import com.coolblue.assignment.search.ui.mapper.messageRes
 import com.coolblue.assignment.search.ui.presentation.SearchContent
 import com.coolblue.assignment.search.ui.presentation.SearchUiAction
 import com.coolblue.assignment.search.ui.presentation.SearchUiState
+import kotlinx.coroutines.launch
 
 /** Where the empty and error blocks sit: under the field, anchored top-left like the rows. */
 private val StatusPadding = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
@@ -62,6 +65,10 @@ internal fun SearchScreen(
     // a saved id must not reopen the sheet when its page is fetched again.
     var openProductId by rememberSaveable(uiState.content is SearchContent.Loaded) { mutableStateOf<Int?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val headerState = rememberCollapsingHeaderState()
+    val scope = rememberCoroutineScope()
+    // The field slides away only over the list; anything else shows it.
+    LaunchedEffect(uiState.content is SearchContent.Loaded) { headerState.show() }
 
     // Edge-to-edge switches off the window's own keyboard resizing, so the keyboard is an inset here:
     // the grid shrinks above it instead of scrolling under it.
@@ -77,7 +84,10 @@ internal fun SearchScreen(
             SearchField(
                 query = uiState.query,
                 onQueryChange = { onAction(SearchUiAction.QueryChanged(it)) },
-                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
+                modifier = Modifier
+                    .collapsingHeader(headerState)
+                    .onFocusChanged { if (it.hasFocus) scope.launch { headerState.show() } }
+                    .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
             )
             // A short fade between kinds of content (skeleton to rows, rows to empty). Keyed on the
             // kind, so a new page appended to Loaded updates in place without animating.
@@ -110,6 +120,7 @@ internal fun SearchScreen(
                     is SearchContent.Loaded -> ProductList(
                         content = content,
                         isRefining = content.query != uiState.query,
+                        headerScroll = headerState.scrollConnection,
                         onProductClick = { openProductId = it },
                         onLoadMore = { onAction(SearchUiAction.LoadMore) },
                         onRetry = { onAction(SearchUiAction.Retry) },

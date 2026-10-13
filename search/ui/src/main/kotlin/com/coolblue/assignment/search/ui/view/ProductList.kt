@@ -27,6 +27,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInputModeManager
@@ -51,6 +53,7 @@ internal val ProductGridCells = GridCells.Adaptive(minSize = 400.dp)
 internal fun ProductList(
     content: SearchContent.Loaded,
     isRefining: Boolean,
+    headerScroll: NestedScrollConnection,
     onProductClick: (Int) -> Unit,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
@@ -113,7 +116,11 @@ internal fun ProductList(
         LazyVerticalGrid(
             columns = ProductGridCells,
             state = gridState,
-            modifier = Modifier.fillMaxSize().semantics { customActions = listOf(refreshAction) },
+            // Inside the pull box, so dragging a half-pulled indicator back retracts it before the header moves.
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(headerScroll)
+                .semantics { customActions = listOf(refreshAction) },
         ) {
             // The rule sits above each cell, so in a multi-column line the rules align whatever the cell heights.
             items(content.products, key = { it.id }) { product ->

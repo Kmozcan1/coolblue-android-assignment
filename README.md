@@ -38,6 +38,7 @@ to the assignment's mock API; its URL is a constant in `core/network`.
   instead: "ipad" shows the iPads and the Apple Pencil, "samsung" shows "No products found".
 - Results come in pages of 24. Scrolling near the end loads the next page until the last one.
 - Pulling the list down fetches it again.
+- The search field slides away as the list scrolls down and comes back as soon as it scrolls up.
 - Dutch on a Dutch phone, English otherwise, and either one per app in Android 13+ settings.
   Prices, ratings and counts follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
   Product names and USPs stay Dutch, as the API sends them; see [Trade-offs](#trade-offs).
