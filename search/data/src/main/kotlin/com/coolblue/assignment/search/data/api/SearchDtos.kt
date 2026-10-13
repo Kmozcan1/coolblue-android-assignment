@@ -3,7 +3,7 @@ package com.coolblue.assignment.search.data.api
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Only the fields the app reads. Unknown keys are ignored by the Json configuration in core/network.
+// Only the fields the app reads.
 
 @Serializable
 internal data class SearchResponseDto(

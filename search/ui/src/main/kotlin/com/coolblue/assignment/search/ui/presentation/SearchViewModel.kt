@@ -33,7 +33,6 @@ internal class SearchViewModel @Inject constructor(
 	// observes it, so after a restore the search simply runs again.
 	private val query: StateFlow<String> = savedStateHandle.getStateFlow(KEY_QUERY, "")
 
-	// Page numbers asked for by Retry and LoadMore.
 	private val pageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1)
 
 	// A restored query is about to be searched, so the screen opens on the skeleton, not the idle prompt.
@@ -64,7 +63,7 @@ internal class SearchViewModel @Inject constructor(
 	}
 
 	private fun onQueryChanged(newQuery: String) {
-		if (newQuery == _uiState.value.query) return // nothing changed, so nothing to refresh
+		if (newQuery == _uiState.value.query) return
 		savedStateHandle[KEY_QUERY] = newQuery
 		// Updated synchronously so the text field never lags behind the keyboard.
 		_uiState.update { state ->

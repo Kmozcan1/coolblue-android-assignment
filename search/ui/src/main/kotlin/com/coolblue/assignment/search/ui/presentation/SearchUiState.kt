@@ -14,16 +14,13 @@ internal data class SearchUiState(
 /** What the area under the search field shows. Exactly one of these at a time. */
 @Immutable
 internal sealed interface SearchContent {
-    /** Blank query: invite the user to type. */
     data object Idle : SearchContent
 
-    /** First page in flight. */
     data object Loading : SearchContent
 
     /** The query returned nothing. Carries that query: the field may already hold a newer one. */
     data class Empty(val query: String) : SearchContent
 
-    /** The first page failed. */
     data class Error(val error: AppError) : SearchContent
 
     /** At least one page is on screen. Load-more state travels with it so the rows stay. */

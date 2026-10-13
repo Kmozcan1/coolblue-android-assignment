@@ -1,6 +1,5 @@
 package com.coolblue.assignment.search.ui.presentation
 
-/** Everything the user can do on the screen. */
 internal sealed interface SearchUiAction {
     data class QueryChanged(val query: String) : SearchUiAction
     data object LoadMore : SearchUiAction

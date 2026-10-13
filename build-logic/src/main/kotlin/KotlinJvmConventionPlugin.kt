@@ -5,7 +5,7 @@ import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
-/** Archetype for plain Kotlin modules (`core:domain`, `search:domain`, `core:test`): no Android, same JVM level as the Android modules. */
+/** Archetype for plain Kotlin modules: no Android, same JVM level as the Android modules. */
 class KotlinJvmConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         pluginManager.apply("org.jetbrains.kotlin.jvm")

@@ -17,7 +17,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // One environment, so a constant. With a second one this becomes a buildConfigField per flavour.
     private const val BASE_URL = "https://bdk0sta2n0.execute-api.eu-west-1.amazonaws.com/mobile-assignment/"
     private const val TIMEOUT_SECONDS = 15L
 

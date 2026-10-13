@@ -2,7 +2,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies
 
-/** Hilt via KSP. Applied only by modules with bindings or injection points; `core:ui` has neither and stays DI-free. */
+/** Hilt via KSP, for modules with bindings or injection points. */
 class AndroidHiltConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         pluginManager.apply("com.google.devtools.ksp")

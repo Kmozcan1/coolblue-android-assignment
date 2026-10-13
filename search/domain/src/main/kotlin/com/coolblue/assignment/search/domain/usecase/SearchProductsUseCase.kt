@@ -12,8 +12,7 @@ import javax.inject.Inject
  * The assignment's API is mocked and returns the same catalogue for every search term, so the
  * searching happens here: a product matches when its name or one of its USPs contains every word
  * of the query. A page that filters down to nothing is skipped, so the caller always gets rows
- * or the last page, never a blank page with more behind it. With a backend that searches, this
- * class goes back to a single `repository.search(query, page)` call and nothing else changes.
+ * or the last page, never a blank page with more behind it.
  */
 class SearchProductsUseCase @Inject constructor(
     private val repository: SearchRepository,

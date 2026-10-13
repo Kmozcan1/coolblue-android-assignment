@@ -12,12 +12,6 @@ import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 
-/**
- * Retrofit suspend calls are already main-safe (they run on OkHttp's own threads), so there is
- * no dispatcher switch here. Network and HTTP failures get their own cases; anything else that
- * goes wrong (a body that will not parse, a surprise from the stack) is Unknown rather than a
- * crash, and is logged, since the Unknown case carries nothing else to debug with. CancellationException is rethrown so coroutine cancellation keeps working.
- */
 internal class SearchRepositoryImpl @Inject constructor(
     private val api: SearchApi,
 ) : SearchRepository {
