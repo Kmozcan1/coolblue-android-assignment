@@ -1,5 +1,6 @@
 package com.coolblue.assignment.search.ui.view
 
+import android.animation.ValueAnimator
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -142,7 +143,7 @@ private fun ProductTile(imageUrl: String, modifier: Modifier = Modifier) {
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(imageUrl)
-            .crossfade(true)
+            .crossfade(ValueAnimator.areAnimatorsEnabled()) // off with the system's animations
             .build(),
         contentDescription = null, // decorative: the name is read as text
         contentScale = ContentScale.Crop,

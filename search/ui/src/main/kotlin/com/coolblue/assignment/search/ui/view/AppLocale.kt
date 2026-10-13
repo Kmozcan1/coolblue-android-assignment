@@ -12,9 +12,17 @@ import com.coolblue.assignment.search.ui.R
 import com.coolblue.assignment.search.ui.mapper.formatCount
 import java.util.Locale
 
-/** The language the strings resolved to: Dutch on a Dutch phone, or when picked in Android 13+ settings; English otherwise. */
+/**
+ * The language the strings resolved to: Dutch on a Dutch phone, or when picked in Android 13+ settings;
+ * English otherwise. The phone's own variant when it speaks that language (nl-BE, en-GB), so TalkBack
+ * keeps its voice for the numbers.
+ */
 @Composable
-internal fun appLocale(): Locale = Locale.forLanguageTag(stringResource(R.string.language_tag))
+internal fun appLocale(): Locale {
+    val language = stringResource(R.string.language_tag)
+    val phone = LocalConfiguration.current.locales[0]
+    return if (phone.language == language) phone else Locale.forLanguageTag(language)
+}
 
 /**
  * A plural in the app's language, count included. pluralStringResource follows the phone's language,

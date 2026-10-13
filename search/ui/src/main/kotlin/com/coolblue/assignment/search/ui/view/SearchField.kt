@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -37,13 +39,16 @@ internal fun SearchField(
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    val fill = MaterialTheme.colorScheme.surfaceContainer
+    // One step darker than surfaceContainer, so the field still reads as a field when unfocused.
+    val fill = MaterialTheme.colorScheme.surfaceContainerHigh
     TextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier
+            .focusRequester(focusRequester)
             .fillMaxWidth()
             // Always 2 dp, only the colour changes: focusing never shifts the layout.
             .border(2.dp, if (focused) MaterialTheme.colorScheme.primary else Color.Transparent, FieldShape),
@@ -59,7 +64,8 @@ internal fun SearchField(
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
+                // Focus moves to the field: the button disappears, and TalkBack would be left on nothing.
+                IconButton(onClick = { onQueryChange(""); focusRequester.requestFocus() }) {
                     Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.search_clear))
                 }
             }
