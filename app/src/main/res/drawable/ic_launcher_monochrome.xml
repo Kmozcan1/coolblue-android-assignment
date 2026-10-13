@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Themed icons tint one colour, so the face is drawn as lines inside an open ring. -->
+    <path
+        android:pathData="M49,30.5a18.5,18.5 0 1,1 0,37a18.5,18.5 0 1,1 0,-37z"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFF" />
+    <path
+        android:pathData="M64.5,64.5L73,73"
+        android:strokeWidth="7"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M42.4,43.6V47M55.6,43.6V47 M36.8,49.8C38.5,57.5 44,60.3 48,60.2C52,60.1 55.5,59 57.8,57.2"
+        android:strokeWidth="4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+</vector>
