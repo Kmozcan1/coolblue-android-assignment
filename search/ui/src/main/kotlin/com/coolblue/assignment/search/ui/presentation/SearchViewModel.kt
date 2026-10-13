@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.withIndex
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration
@@ -43,8 +44,8 @@ internal class SearchViewModel @Inject constructor(
     // Outlives an edit away and back, which recomputes isRefreshing from the query alone.
     private var refreshPending = false
 
-    // The query is searched as soon as the debounce passes (the whole catalogue while it is blank), so
-    // the screen opens on the skeleton.
+    // The query is searched straight away (the whole catalogue while it is blank), so the screen opens
+    // on the skeleton.
     private val _uiState = MutableStateFlow(SearchUiState(query = query.value, content = SearchContent.Loading))
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
@@ -52,8 +53,14 @@ internal class SearchViewModel @Inject constructor(
         // Every request goes through this one pipeline. collectLatest cancels the previous
         // load when a new request arrives, so at most one request is in flight and a stale
         // response can never overwrite a newer state.
+        val openingQuery = query.value
         viewModelScope.launch {
-            merge(query.debounce(DEBOUNCE_MS.milliseconds).map { FIRST_PAGE }, pageRequests)
+            // The opening query (blank, or restored after process death) goes at once; typing waits out the
+            // debounce. Compared by value too, so a query typed before collection starts is still debounced.
+            val queries = query.withIndex().debounce { (index, value) ->
+                if (index == 0 && value == openingQuery) Duration.ZERO else DEBOUNCE_MS.milliseconds
+            }
+            merge(queries.map { FIRST_PAGE }, pageRequests)
                 .collectLatest { page -> load(query.value, page) }
         }
     }

@@ -205,6 +205,16 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `given a saved query, when the screen opens, then it is searched without waiting for the debounce`() = runTest {
+        coEvery { searchProducts("iphone", 1) } returns page(1)
+        viewModel(savedQuery = "iphone")
+
+        runCurrent()
+
+        coVerify(exactly = 1) { searchProducts("iphone", 1) }
+    }
+
+    @Test
     fun `given page 1 repeats a row, when it loads, then that row is shown once`() = runTest {
         coEvery { searchProducts("", 1) } returns page(1, products = listOf(product(1), product(1), product(2)))
         val viewModel = viewModel()

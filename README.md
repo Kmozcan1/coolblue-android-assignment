@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **50 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **51 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -111,11 +111,13 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
 Every request the ViewModel makes goes through a single flow:
 
 ```kotlin
-merge(query.debounce(300).map { 1 }, pageRequests)
+val queries = query.withIndex().debounce { (index, value) -> if (index == 0 && value == openingQuery) 0 else 300 }
+merge(queries.map { 1 }, pageRequests)
     .collectLatest { page -> load(query.value, page) }
 ```
 
-The debounced query asks for page 1. `Retry`, `LoadMore` and `Refresh` push a page number into
+The query asks for page 1: the opening one (blank, or restored after process death) at once, each
+edit after 300 ms without typing. `Retry`, `LoadMore` and `Refresh` push a page number into
 `pageRequests`. `collectLatest` cancels the previous load whenever a new request arrives, so at
 most one request is ever in flight for the screen and a slow, stale response can never overwrite
 a newer state. There are no job fields to cancel by hand.
@@ -162,7 +164,7 @@ a newer state. There are no job fields to cancel by hand.
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through, a product with no reviews or explicit nulls |
 | search/ui | `ProductUiMapperTest` | list price rule, price, rating and count formatting in Dutch and English |
-| search/ui | `SearchViewModelTest` | debounce, first page, empty, error and retry, load more, a row repeated within page 1 or by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value, a fast refresh stays visible, a refresh right after a load more |
+| search/ui | `SearchViewModelTest` | debounce, the opening query is not debounced, first page, empty, error and retry, load more, a row repeated within page 1 or by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value, a fast refresh stays visible, a refresh right after a load more |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
 Android lint.
