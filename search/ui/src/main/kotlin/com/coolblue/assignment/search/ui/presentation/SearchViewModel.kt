@@ -40,8 +40,6 @@ internal class SearchViewModel @Inject constructor(
 
     private val productPageRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
-    private var refreshPending = false
-
     private val _uiState = MutableStateFlow(SearchUiState(query = query.value, content = SearchContent.Loading))
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
@@ -79,23 +77,22 @@ internal class SearchViewModel @Inject constructor(
     private fun onQueryChanged(newQuery: String) {
         if (newQuery == _uiState.value.query) return
         savedStateHandle[KEY_QUERY] = newQuery
-        _uiState.update { state -> state.copy(query = newQuery, content = state.content.awaitingResultsFor(newQuery)) }
+        _uiState.update { it.copy(query = newQuery) }
     }
 
-    private fun SearchContent.awaitingResultsFor(newQuery: String): SearchContent =
-        if (this is SearchContent.Loaded) copy(isRefreshing = searchedQuery != newQuery || refreshPending) else this
-
     private fun loadMoreProducts() {
-        val shownResults = _uiState.value.content as? SearchContent.Loaded ?: return
+        val state = _uiState.value
+        val shownResults = state.content as? SearchContent.Loaded ?: return
         val paging = shownResults.paging as? Paging.Idle ?: return
-        if (shownResults.isRefreshing) return
+        if (state.areResultsBeingReplaced) return
         productPageRequests.tryEmit(paging.nextPage)
     }
 
     private fun retryFailedLoad() {
-        when (val content = _uiState.value.content) {
+        val state = _uiState.value
+        when (val content = state.content) {
             is SearchContent.Error -> productPageRequests.tryEmit(FIRST_PAGE)
-            is SearchContent.Loaded -> if (content.paging is Paging.Failed && !content.isRefreshing) {
+            is SearchContent.Loaded -> if (content.paging is Paging.Failed && !state.areResultsBeingReplaced) {
                 productPageRequests.tryEmit(content.paging.nextPage)
             }
 
@@ -104,9 +101,8 @@ internal class SearchViewModel @Inject constructor(
     }
 
     private fun refreshResults() {
-        val shownResults = _uiState.value.content as? SearchContent.Loaded ?: return
-        if (shownResults.isRefreshing) return
-        refreshPending = true
+        val state = _uiState.value
+        if (state.content !is SearchContent.Loaded || state.areResultsBeingReplaced) return
         updateShownResults { it.copy(isRefreshing = true) }
         productPageRequests.tryEmit(FIRST_PAGE)
     }
@@ -117,30 +113,34 @@ internal class SearchViewModel @Inject constructor(
 
     private suspend fun loadFirstPage(query: String) {
         val shownResultsForQuery = (_uiState.value.content as? SearchContent.Loaded)?.takeIf { it.searchedQuery == query }
-        val areResultsAlreadyShown = shownResultsForQuery != null && !shownResultsForQuery.isRefreshing
-        if (areResultsAlreadyShown) {
-            allowLoadingMoreAgain()
-            return
-        }
-        val isRefresh = shownResultsForQuery != null
-        keepShownProductsOrShowSkeleton()
-        val result = if (isRefresh) {
-            takingAtLeast(MIN_REFRESH_SPINNER_MS.milliseconds) { searchProducts(query, FIRST_PAGE) }
-        } else {
-            searchProducts(query, FIRST_PAGE)
-        }
-        val hasQueryChangedMeanwhile = this.query.value != query
-        if (hasQueryChangedMeanwhile) return
-        refreshPending = false
-        when (result) {
-            is AppResult.Success -> _uiState.update { it.copy(content = result.data.toContent(query)) }
-            is AppResult.Failure -> if (isRefresh) {
-                updateShownResults { it.copy(isRefreshing = false, refreshFailure = RefreshFailure(result.error)) }
-            } else {
-                _uiState.update { it.copy(content = SearchContent.Error(result.error)) }
-            }
+        when {
+            shownResultsForQuery == null -> searchNewQuery(query)
+            shownResultsForQuery.isRefreshing -> refreshShownResults(query)
+            else -> allowLoadingMoreAgain()
         }
     }
+
+    private suspend fun searchNewQuery(query: String) {
+        keepShownProductsOrShowSkeleton()
+        val result = searchProducts(query, FIRST_PAGE)
+        if (hasQueryChangedMeanwhile(query)) return
+        when (result) {
+            is AppResult.Success -> _uiState.update { it.copy(content = result.data.toContent(query)) }
+            is AppResult.Failure -> _uiState.update { it.copy(content = SearchContent.Error(result.error)) }
+        }
+    }
+
+    private suspend fun refreshShownResults(query: String) {
+        keepShownProductsOrShowSkeleton()
+        val result = takingAtLeast(MIN_REFRESH_SPINNER_MS.milliseconds) { searchProducts(query, FIRST_PAGE) }
+        if (hasQueryChangedMeanwhile(query)) return
+        when (result) {
+            is AppResult.Success -> _uiState.update { it.copy(content = result.data.toContent(query)) }
+            is AppResult.Failure -> updateShownResults { it.copy(isRefreshing = false, refreshFailure = RefreshFailure(result.error)) }
+        }
+    }
+
+    private fun hasQueryChangedMeanwhile(query: String) = this.query.value != query
 
     private fun allowLoadingMoreAgain() {
         updateShownResults { it.copy(paging = it.paging.idleIfLoading()) }
@@ -150,7 +150,7 @@ internal class SearchViewModel @Inject constructor(
         _uiState.update { state ->
             val content = state.content
             val loading = if (content is SearchContent.Loaded) {
-                content.copy(isRefreshing = true, paging = content.paging.idleIfLoadingOrFailed(), refreshFailure = null)
+                content.copy(paging = content.paging.idleIfLoadingOrFailed(), refreshFailure = null)
             } else {
                 SearchContent.Loading
             }
@@ -197,6 +197,9 @@ internal class SearchViewModel @Inject constructor(
         const val MIN_REFRESH_SPINNER_MS = 800L
     }
 }
+
+private val SearchUiState.areResultsBeingReplaced: Boolean
+    get() = isRefining || (content as? SearchContent.Loaded)?.isRefreshing == true
 
 private fun List<ProductUiModel>.withoutDuplicateProducts() = distinctBy { it.id }
 

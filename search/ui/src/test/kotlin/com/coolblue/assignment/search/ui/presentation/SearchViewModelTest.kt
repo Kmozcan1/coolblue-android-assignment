@@ -104,6 +104,22 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `given the first page fails, when Retry, then it shows Loading until the page lands`() = runTest {
+        coEvery { searchProducts("iphone", 1) } returns AppResult.Failure(AppError.Network)
+        val viewModel = viewModel()
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
+        advanceUntilIdle()
+        coEvery { searchProducts("iphone", 1) } coAnswers { delay(1_000); page(1) }
+
+        viewModel.onAction(SearchUiAction.Retry)
+        runCurrent()
+
+        assertThat(viewModel.uiState.value.content).isEqualTo(SearchContent.Loading)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.content).isInstanceOf(SearchContent.Loaded::class.java)
+    }
+
+    @Test
     fun `given zero results, then content is Empty`() = runTest {
         coEvery { searchProducts("nothing", 1) } returns page(1, pageCount = 1, products = emptyList())
         val viewModel = viewModel()
@@ -158,9 +174,9 @@ class SearchViewModelTest {
 
         viewModel.onAction(SearchUiAction.QueryChanged(""))
 
-        val refreshing = viewModel.uiState.value.content as SearchContent.Loaded
-        assertThat(refreshing.products.map { it.id }).containsExactly(1)
-        assertThat(refreshing.isRefreshing).isTrue()
+        val refining = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(refining.products.map { it.id }).containsExactly(1)
+        assertThat(viewModel.uiState.value.isRefining).isTrue()
 
         advanceUntilIdle()
 
@@ -298,16 +314,16 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `given results on screen, when the query is refined, then the rows stay and refresh until the new rows land`() = runTest {
+    fun `given results on screen, when the query is refined, then the rows stay and it is refining until the new rows land`() = runTest {
         val viewModel = loadedViewModel()
         coEvery { searchProducts("iphone 6", 1) } coAnswers { delay(1_000); page(1, products = listOf(product(6))) }
 
         viewModel.onAction(SearchUiAction.QueryChanged("iphone 6"))
         viewModel.onAction(SearchUiAction.LoadMore) // inside the debounce: page 2 would belong to the new query, ignored
         advanceTimeBy(500) // past the debounce, the request is in flight
-        val refreshing = viewModel.uiState.value.content as SearchContent.Loaded
-        assertThat(refreshing.products.map { it.id }).containsExactly(1)
-        assertThat(refreshing.isRefreshing).isTrue()
+        val refining = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(refining.products.map { it.id }).containsExactly(1)
+        assertThat(viewModel.uiState.value.isRefining).isTrue()
 
         viewModel.onAction(SearchUiAction.LoadMore) // in flight: still ignored
         advanceUntilIdle()
@@ -372,6 +388,22 @@ class SearchViewModelTest {
         val viewModel = loadedViewModel()
 
         viewModel.onAction(SearchUiAction.QueryChanged("iphonex"))
+        viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { searchProducts("iphone", 1) }
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(1)
+        assertThat(loaded.isRefreshing).isFalse()
+    }
+
+    @Test
+    fun `given results on screen, when the query is edited and edited back after the debounce, then nothing is fetched again`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphonex", 1) } coAnswers { delay(1_000); page(1, products = listOf(product(9))) }
+
+        viewModel.onAction(SearchUiAction.QueryChanged("iphonex"))
+        advanceTimeBy(500) // past the debounce, iphonex is in flight
         viewModel.onAction(SearchUiAction.QueryChanged("iphone"))
         advanceUntilIdle()
 
@@ -492,6 +524,36 @@ class SearchViewModelTest {
         val loaded = viewModel.uiState.value.content as SearchContent.Loaded
         assertThat(loaded.products.map { it.id }).containsExactly(5)
         assertThat(loaded.paging).isEqualTo(Paging.Idle(2))
+    }
+
+    @Test
+    fun `given a refresh in flight, when LoadMore, then it is ignored and the refresh lands`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 1) } coAnswers { delay(1_000); page(1, products = listOf(product(5))) }
+        coEvery { searchProducts("iphone", 2) } returns page(2)
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        runCurrent()
+        viewModel.onAction(SearchUiAction.LoadMore)
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { searchProducts("iphone", 2) }
+        val loaded = viewModel.uiState.value.content as SearchContent.Loaded
+        assertThat(loaded.products.map { it.id }).containsExactly(5)
+        assertThat(loaded.isRefreshing).isFalse()
+    }
+
+    @Test
+    fun `given a refresh in flight, when Refresh again, then only one request is made`() = runTest {
+        val viewModel = loadedViewModel()
+        coEvery { searchProducts("iphone", 1) } returns page(1, products = listOf(product(5)))
+
+        viewModel.onAction(SearchUiAction.Refresh)
+        runCurrent()
+        viewModel.onAction(SearchUiAction.Refresh)
+        advanceUntilIdle()
+
+        coVerify(exactly = 2) { searchProducts("iphone", 1) } // the first load and one refresh
     }
 
     @Test

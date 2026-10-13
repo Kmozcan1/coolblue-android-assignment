@@ -8,7 +8,9 @@ import com.coolblue.assignment.search.ui.model.ProductUiModel
 internal data class SearchUiState(
     val query: String = "",
     val content: SearchContent = SearchContent.Loading,
-)
+) {
+    val isRefining: Boolean get() = content is SearchContent.Loaded && content.searchedQuery != query
+}
 
 @Immutable
 internal sealed interface SearchContent {

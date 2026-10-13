@@ -63,7 +63,7 @@ internal fun ProductList(
     modifier: Modifier = Modifier,
 ) {
     val gridState = rememberLazyGridState()
-    LoadMoreNearEndEffect(gridState, content, onLoadMore)
+    LoadMoreNearEndEffect(gridState, content, isRefining, onLoadMore)
     ScrollToTopOnNewResultsEffect(gridState, content.searchedQuery)
     SnapHeaderWhenScrollingStopsEffect(gridState, header)
     HideKeyboardOnDragEffect(gridState)
@@ -118,14 +118,14 @@ internal fun ProductList(
 }
 
 @Composable
-private fun LoadMoreNearEndEffect(gridState: LazyGridState, content: SearchContent.Loaded, onLoadMore: () -> Unit) {
+private fun LoadMoreNearEndEffect(gridState: LazyGridState, content: SearchContent.Loaded, isRefining: Boolean, onLoadMore: () -> Unit) {
     val isNearEnd by remember(gridState) {
         derivedStateOf {
             val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             lastVisible >= gridState.layoutInfo.totalItemsCount - 1 - LOAD_MORE_ROWS_BEFORE_END
         }
     }
-    LaunchedEffect(isNearEnd, content) {
+    LaunchedEffect(isNearEnd, content, isRefining) {
         if (isNearEnd) onLoadMore()
     }
 }

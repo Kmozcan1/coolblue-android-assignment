@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **53 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **57 unit tests**, written test-first. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -98,9 +98,10 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
   death, since the search starts over.
 - `Loading` only shows when there are no rows to keep: a cold start, a restore after process
   death, Retry after an error, or a refinement from an empty result. Refining a query that has
-  rows keeps them on screen under a thin progress bar, with `Loaded.isRefreshing` set, until the
-  new rows replace them at the top; `LoadMore` is ignored meanwhile, since page 2 would belong to the new query.
-  A pull to refresh sets the same flag for the rows' own query and shows the pull indicator instead.
+  rows keeps them on screen under a thin progress bar until the new rows replace them at the top.
+  `SearchUiState.isRefining` is not stored: it is true while the typed query differs from the rows'
+  `searchedQuery`. `LoadMore` is ignored meanwhile, since page 2 would belong to the new query.
+  A pull to refresh sets `Loaded.isRefreshing` and shows the pull indicator instead.
   If it fails the rows stay, since they still answer the query, and `Loaded.refreshFailure` holds
   the reason until the snackbar has shown it.
 - The repository returns `AppResult`: `Success` with data or `Failure` with an `AppError`.
@@ -166,7 +167,7 @@ a newer state. There are no job fields to cancel by hand.
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through, a product with no reviews or explicit nulls |
 | search/ui | `ProductUiMapperTest` | list price rule, price, rating and count formatting in Dutch and English |
-| search/ui | `SearchViewModelTest` | debounce, the opening query is not debounced, first page, empty, error and retry, load more, a row repeated within page 1 or by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refreshing, edit-and-undo keeps the rows, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value, a fast refresh stays visible, a refresh right after a load more, a load-more error survives an edit-and-undo but not a refresh |
+| search/ui | `SearchViewModelTest` | debounce, the opening query is not debounced, first page, empty, error and retry, load more, a row repeated within page 1 or by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refining, edit-and-undo keeps the rows, also after the debounce, Retry shows Loading, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value, a fast refresh stays visible, a refresh right after a load more, load more and a second refresh ignored during a refresh, a load-more error survives an edit-and-undo but not a refresh |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
 Android lint.
