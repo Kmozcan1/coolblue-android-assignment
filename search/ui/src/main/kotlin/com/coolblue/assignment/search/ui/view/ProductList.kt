@@ -34,12 +34,14 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.coolblue.assignment.search.ui.R
+import com.coolblue.assignment.search.ui.mapper.formatCount
 import com.coolblue.assignment.search.ui.mapper.messageRes
 import com.coolblue.assignment.search.ui.presentation.Paging
 import com.coolblue.assignment.search.ui.presentation.SearchContent
@@ -172,7 +174,7 @@ private fun LazyGridScope.nextPageFooter(paging: Paging, productCount: Int, onRe
         }
         Paging.End -> fullWidthItem(key = "end") {
             Text(
-                text = appPluralString(R.plurals.list_end, productCount),
+                text = pluralStringResource(R.plurals.list_end, productCount, formatCount(productCount)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),

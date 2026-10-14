@@ -2,7 +2,7 @@ package com.coolblue.assignment.search.ui.model
 
 import androidx.compose.runtime.Immutable
 
-/** A product ready to draw. Prices and rating stay numbers, formatted in the app's language when drawn. */
+/** A product ready to draw. Prices and rating stay numbers, formatted in Dutch when drawn. */
 @Immutable
 internal data class ProductUiModel(
     val id: Int,

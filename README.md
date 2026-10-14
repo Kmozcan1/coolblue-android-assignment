@@ -36,7 +36,7 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 - The search field slides away as the list scrolls down and comes back on scroll up.
 - Tapping a row opens the full product in a bottom sheet.
 - Every error offers Try again; a failed later page or refresh keeps the rows on screen.
-- Dutch or English, prices formatted to match. The query survives rotation and process death.
+- Dutch on every phone, prices and counts written the Dutch way. The query survives rotation and process death.
 
 ## Architecture
 
@@ -49,11 +49,11 @@ Multi-module Clean Architecture with MVVM and unidirectional data flow. One feat
 split into three layers, plus a few shared modules.
 
 ```
-app             Application (also Coil's image loader), MainActivity, the theme wrapped around the one screen
+app             Application (also Coil's image loader), MainActivity in Dutch, the theme wrapped around the one screen
 build-logic     Gradle convention plugins, so each module's build file is about ten lines
 core/domain     AppResult and AppError, the result contract every repository returns
 core/network    OkHttp, kotlinx-serialization and Retrofit, provided through Hilt
-core/ui         Material 3 theme in Coolblue colours
+core/ui         Material 3 theme in Coolblue colours, the Dutch locale
 core/test       MainDispatcherRule, shared by ViewModel tests
 search/domain   Product, ProductPage, SearchRepository, SearchProductsUseCase
 search/data     Retrofit API, DTOs, DTO-to-domain mapper, SearchRepositoryImpl, Hilt bindings
@@ -140,12 +140,10 @@ a newer state. There are no job fields to cancel by hand.
 - **Nine modules for one screen.** More than the screen needs, but a second feature is three
   more modules and no edits to `search`.
 - **Prices as integer cents.** The API's decimal euros are rounded to `Int` cents once, in the
-  mapper, so the domain never does arithmetic on floats. The UI formats them in the app's language when it draws them.
-- **Dutch and English, though the assignment doesn't ask for it.** Added because it was cheap and
-  there was time. The app follows the phone's language, and Android 13+ lets users pick one per
-  app in system settings, so there is no in-app switch. The app's own words, prices, ratings and
-  counts change with it; product names, USPs and promo labels stay Dutch, because the mock API
-  only sends them in Dutch. This assumes a working backend would send them in both languages.
+  mapper, so the domain never does arithmetic on floats. The UI formats them in Dutch when it draws them.
+- **Dutch only.** The API sends product names, USPs and promo labels in Dutch only, so the app's
+  own words, prices, ratings and counts are Dutch too, whatever the phone's language. `MainActivity`
+  overrides only the language, so plural forms and the libraries' own strings follow it.
 
 ## Tests
 
@@ -154,7 +152,7 @@ a newer state. There are no job fields to cancel by hand.
 | search/domain | `ProductPageTest` | next page from page count |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
 | search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through, a product with no reviews or explicit nulls, products with no id, name, image or price skipped |
-| search/ui | `ProductUiMapperTest` | list price rule, price, rating and count formatting in Dutch and English |
+| search/ui | `ProductUiMapperTest` | list price rule, Dutch price, rating and count formatting |
 | search/ui | `SearchViewModelTest` | debounce, the opening query is not debounced, first page, empty, error and retry, load more, a row repeated within page 1 or by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refining, edit-and-undo keeps the rows, also after the debounce, Retry shows Loading, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value, a fast refresh stays visible, a refresh right after a load more, load more and a second refresh ignored during a refresh, a load-more error survives an edit-and-undo but not a refresh |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with

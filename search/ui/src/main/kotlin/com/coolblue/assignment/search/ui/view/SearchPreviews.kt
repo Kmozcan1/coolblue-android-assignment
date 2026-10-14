@@ -2,7 +2,6 @@ package com.coolblue.assignment.search.ui.view
 
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.coolblue.assignment.core.domain.result.AppError
 import com.coolblue.assignment.core.ui.theme.CoolblueTheme
@@ -109,10 +108,4 @@ private fun SearchScreenLoadMoreErrorPreview() {
     CoolblueTheme {
         SearchScreen(SearchUiState("iphone", loaded.copy(paging = Paging.Failed(2, AppError.Server(500)))), onAction = {})
     }
-}
-
-@Preview(locale = "nl")
-@Composable
-private fun SearchScreenDutchPreview() {
-    CoolblueTheme { SearchScreen(SearchUiState("iphone", loaded), onAction = {}) }
 }

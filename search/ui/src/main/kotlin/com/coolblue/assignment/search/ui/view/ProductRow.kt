@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.text
@@ -52,12 +53,13 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.coolblue.assignment.core.ui.Dutch
 import com.coolblue.assignment.core.ui.theme.CoolblueColors
 import com.coolblue.assignment.search.ui.R
+import com.coolblue.assignment.search.ui.mapper.formatCount
 import com.coolblue.assignment.search.ui.mapper.formatPrice
 import com.coolblue.assignment.search.ui.mapper.formatRating
 import com.coolblue.assignment.search.ui.model.ProductUiModel
-import java.util.Locale
 
 private val TileWidth = 84.dp
 private val TileHeight = TileWidth * 2
@@ -160,12 +162,11 @@ private fun PromoKicker(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun Rating(average: Double, reviewCount: Int, modifier: Modifier = Modifier) {
     if (reviewCount == 0) return
-    val locale = appLocale()
-    val rating = formatRating(average, locale)
-    val reviews = appPluralString(R.plurals.review_count, reviewCount)
+    val rating = formatRating(average)
+    val reviews = pluralStringResource(R.plurals.review_count, reviewCount, formatCount(reviewCount))
     val spokenRating = stringResource(R.string.rating_a11y, rating, reviews)
     Row(
-        modifier = modifier.clearAndSetSemantics { text = spokenRating.spokenIn(locale) },
+        modifier = modifier.clearAndSetSemantics { text = spokenRating.spokenInDutch() },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -206,15 +207,14 @@ private fun Usp(text: String, singleLine: Boolean) {
 
 @Composable
 private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Modifier) {
-    val locale = appLocale()
     FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = formatPrice(priceCents, locale).spokenIn(locale),
+            text = formatPrice(priceCents).spokenInDutch(),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.alignByBaseline(),
         )
         if (listPriceCents != null) {
-            val listPrice = formatPrice(listPriceCents, locale)
+            val listPrice = formatPrice(listPriceCents)
             val spokenListPrice = stringResource(R.string.list_price_a11y, listPrice)
             Text(
                 text = listPrice,
@@ -223,13 +223,14 @@ private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Mo
                 textDecoration = TextDecoration.LineThrough,
                 modifier = Modifier
                     .alignByBaseline()
-                    .clearAndSetSemantics { text = spokenListPrice.spokenIn(locale) },
+                    .clearAndSetSemantics { text = spokenListPrice.spokenInDutch() },
             )
         }
     }
 }
 
-private fun String.spokenIn(locale: Locale) = AnnotatedString(this, SpanStyle(localeList = LocaleList(locale.toLanguageTag())))
+// TalkBack reads in the phone's language unless told otherwise, and a non-Dutch voice can read "1.079,00" as one point zero seven nine.
+private fun String.spokenInDutch() = AnnotatedString(this, SpanStyle(localeList = LocaleList(Dutch.toLanguageTag())))
 
 @Composable
 private fun Delivery(modifier: Modifier = Modifier) {

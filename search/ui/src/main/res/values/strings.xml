@@ -1,25 +1,23 @@
-<resources>
-    <!-- Which translation this is, so numbers are formatted in the same language as the words. -->
-    <string name="language_tag">en</string>
-    <string name="search_hint">Search for a product</string>
-    <string name="search_clear">Clear search</string>
-    <string name="loading">Loading products</string>
-    <string name="search_empty">No products found for “%1$s”</string>
-    <string name="search_empty_hint">Check the spelling, or try a shorter word.</string>
-    <string name="retry">Try again</string>
-    <string name="load_more_error">Couldn’t load more products</string>
-    <string name="refresh">Refresh</string>
-    <string name="refresh_error">Couldn’t refresh. %1$s</string>
-    <string name="error_network">No internet connection</string>
-    <string name="error_server">The Coolblue server returned an error</string>
-    <string name="error_unknown">The search couldn’t be completed</string>
-    <string name="delivered_tomorrow">Delivered tomorrow</string>
-    <string name="show_details">Show details</string>
-    <string name="rating_a11y">Rated %1$s out of 10, %2$s</string>
-    <string name="list_price_a11y">Was %1$s</string>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="nl">
+    <string name="search_hint">Zoek een product</string>
+    <string name="search_clear">Zoekopdracht wissen</string>
+    <string name="loading">Producten laden</string>
+    <string name="search_empty">Geen producten gevonden voor “%1$s”</string>
+    <string name="search_empty_hint">Controleer de spelling, of probeer een korter woord.</string>
+    <string name="retry">Opnieuw proberen</string>
+    <string name="load_more_error">Meer producten laden is mislukt</string>
+    <string name="refresh">Vernieuwen</string>
+    <string name="refresh_error">Vernieuwen is mislukt. %1$s</string>
+    <string name="error_network">Geen internetverbinding</string>
+    <string name="error_server">De server van Coolblue gaf een foutmelding</string>
+    <string name="error_unknown">De zoekopdracht kon niet worden voltooid</string>
+    <string name="delivered_tomorrow">Morgen in huis</string>
+    <string name="show_details">Details tonen</string>
+    <string name="rating_a11y">Beoordeeld met %1$s van de 10, %2$s</string>
+    <string name="list_price_a11y">Eerst %1$s</string>
     <plurals name="list_end">
-        <item quantity="one">That’s the only product</item>
-        <item quantity="other">You’ve seen all %s products</item>
+        <item quantity="one">Dit is het enige product</item>
+        <item quantity="other">Je hebt alle %s producten gezien</item>
     </plurals>
     <plurals name="review_count">
         <item quantity="one">%s review</item>

@@ -12,12 +12,11 @@ android {
     }
 
     androidResources {
-        // English and Dutch only, also for the libraries' strings; Android 13+ lists them under App languages.
-        localeFilters += listOf("en", "nl")
-        generateLocaleConfig = true
+        // Dutch only, also for the libraries' strings.
+        localeFilters += listOf("nl")
     }
 
-    // Android 13+ lets users pick the app's language in system settings: ship both, so the pick finds its strings.
+    // MainActivity runs in Dutch on every phone: keep Dutch in the base APK, so a phone in another language has the libraries' Dutch strings too.
     bundle {
         language {
             enableSplit = false
