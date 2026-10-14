@@ -81,9 +81,9 @@ SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─�
   with each other.
 - Tapping a row opens the same product in a bottom sheet, nothing clipped, every USP. Which
   sheet is open is screen-local `rememberSaveable` state, not part of `SearchUiState`: it is
-  transient chrome over a product the `Loaded` content already holds. It closes when the content
-  stops being `Loaded`: a refined query that ends empty or failed, or a restore after process
-  death, since the search starts over.
+  transient chrome over a product the `Loaded` content already holds. It closes when its product
+  is no longer among the rows: a refresh that drops it, a refined query that ends empty or
+  failed, or a restore after process death, since the search starts over.
 - `Loading` only shows when there are no rows to keep: a cold start, a restore after process
   death, Retry after an error, or a refinement from an empty result. Refining a query that has
   rows keeps them on screen under a thin progress bar until the new rows replace them at the top.

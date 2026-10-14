@@ -59,8 +59,7 @@ internal fun SearchScreen(
     uiState: SearchUiState,
     onAction: (SearchUiAction) -> Unit,
 ) {
-    val hasResults = uiState.content is SearchContent.Loaded
-    var openProductId by rememberSaveable(hasResults) { mutableStateOf<Int?>(null) }
+    var openProductId by rememberSaveable { mutableStateOf<Int?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val headerState = rememberCollapsingHeaderState()
     val scope = rememberCoroutineScope()
