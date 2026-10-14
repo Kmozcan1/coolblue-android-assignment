@@ -13,10 +13,10 @@ internal fun SearchResponseDto.toDomain(): ProductPage = ProductPage(
     pageCount = pageCount,
 )
 
-/** Null for a product with no id, name, image or price: one incomplete product must not cost the page the others. */
+/** Null for a product missing its id, name, image or price, so such a product costs the page only itself. */
 internal fun ProductDto.toDomainOrNull(): Product? {
     if (productId == null || productName == null || productImage == null || salesPriceIncVat == null) {
-        Log.w(TAG, "Skipped product $productId: it has no id, name, image or price")
+        Log.w(TAG, "Skipped product $productId: it is missing its id, name, image or price")
         return null
     }
     return Product(

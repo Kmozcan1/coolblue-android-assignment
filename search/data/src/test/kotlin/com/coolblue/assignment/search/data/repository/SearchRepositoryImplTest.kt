@@ -83,9 +83,9 @@ class SearchRepositoryImplTest {
     fun `given some products miss their id, name, image or price, when searching, then the page loads with the rest`() = runTest {
         val products = listOf(
             """{"productName": "Geen id", "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
-            """{"productId": 2, "productName": null, "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
+            """{"productId": 2, "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
             """{"productId": 3, "productName": "Geen foto", "salesPriceIncVat": 9.99}""",
-            """{"productId": 4, "productName": "Geen prijs", "salesPriceIncVat": null, "productImage": "https://image"}""",
+            """{"productId": 4, "productName": "Geen prijs", "productImage": "https://image"}""",
             """{"productId": 5, "productName": "Kabel", "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
         )
         server.enqueue(MockResponse.Builder().code(200).body("""{"products": ${products.joinToString(prefix = "[", postfix = "]")}, "currentPage": 1, "pageCount": 1}""").build())
