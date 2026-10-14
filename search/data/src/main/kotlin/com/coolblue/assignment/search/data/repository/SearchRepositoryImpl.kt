@@ -25,7 +25,7 @@ internal class SearchRepositoryImpl @Inject constructor(
     } catch (e: HttpException) {
         AppResult.Failure(AppError.Server(e.code()))
     } catch (e: Exception) {
-        Log.w(TAG, "search(query=$query, page=$page) failed", e)
+        Log.w(TAG, "search(page=$page) failed", e)
         AppResult.Failure(AppError.Unknown)
     }
 }
