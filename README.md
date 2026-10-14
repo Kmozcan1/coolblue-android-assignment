@@ -30,25 +30,13 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 
 ## What it does
 
-- The app opens on the whole catalogue. Typing searches, debounced by 300 ms, and clearing the
-  field brings the catalogue back.
-- The query goes to the API with every page request and the list shows what comes back. The
-  assignment's API is a mock that returns the same catalogue for every search term, so every
-  query lists the same products. The [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch searches in the app
-  instead: "ipad" shows the iPads and the Apple Pencil, "samsung" shows "No products found".
-- Results come in pages of 24. Scrolling near the end loads the next page until the last one.
-- Pulling the list down fetches it again.
-- The search field slides away as the list scrolls down and comes back as soon as it scrolls up.
-- Dutch on a Dutch phone, English otherwise, and either one per app in Android 13+ settings.
-  Prices, ratings and counts follow the words: "€ 1.079,00" in Dutch, "€1,079.00" in English.
-  Product names and USPs stay Dutch, as the API sends them; see [Trade-offs](#trade-offs).
-- Each row shows the product image, name, review score and count, up to three USPs, a promo
-  label, the price (with the old price struck through when it is higher than the current one)
-  and the next-day delivery promise.
-- Every error offers Try again: under the field when the first page fails, in a footer row when
-  a later page fails, in a snackbar when a refresh fails. The last two keep the rows on screen.
-- Tapping a row opens the product in a bottom sheet: the full name, every USP, a larger photo.
-- The query survives rotation and process death. After a restore the search runs again by itself.
+- Opens on the whole catalogue. Typing searches (debounced by 300 ms); clearing the field brings
+  the catalogue back.
+- Pages of 24 load as you scroll; pulling the list down fetches it again.
+- The search field slides away as the list scrolls down and comes back on scroll up.
+- Tapping a row opens the full product in a bottom sheet.
+- Every error offers Try again; a failed later page or refresh keeps the rows on screen.
+- Dutch or English, prices formatted to match. The query survives rotation and process death.
 
 ## Architecture
 
