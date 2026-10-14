@@ -47,7 +47,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 
-private const val LOAD_MORE_ROWS_BEFORE_END = 3
+private const val LOAD_MORE_WHEN_PRODUCTS_LEFT = 3
 
 internal val ProductGridCells = GridCells.Adaptive(minSize = 400.dp)
 
@@ -122,7 +122,7 @@ private fun LoadMoreNearEndEffect(gridState: LazyGridState, content: SearchConte
     val isNearEnd by remember(gridState) {
         derivedStateOf {
             val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            lastVisible >= gridState.layoutInfo.totalItemsCount - 1 - LOAD_MORE_ROWS_BEFORE_END
+            lastVisible >= gridState.layoutInfo.totalItemsCount - 1 - LOAD_MORE_WHEN_PRODUCTS_LEFT
         }
     }
     LaunchedEffect(isNearEnd, content, isRefining) {
