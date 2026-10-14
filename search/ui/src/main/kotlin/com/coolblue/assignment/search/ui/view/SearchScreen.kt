@@ -122,9 +122,7 @@ internal fun SearchScreen(
         }
     }
 
-    val openedProduct = remember(openProductId) {
-        (uiState.content as? SearchContent.Loaded)?.products?.firstOrNull { it.id == openProductId }
-    }
+    val openedProduct = (uiState.content as? SearchContent.Loaded)?.products?.firstOrNull { it.id == openProductId }
     if (openProductId != null && openedProduct == null) SideEffect { openProductId = null }
 
     val refreshFailure = (uiState.content as? SearchContent.Loaded)?.refreshFailure
