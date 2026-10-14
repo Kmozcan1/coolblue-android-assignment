@@ -25,7 +25,7 @@ class ProductMapperTest {
 
     @Test
     fun `given a full product dto, when mapped, then every field lands and prices become cents`() {
-        assertThat(dto.toDomain()).isEqualTo(
+        assertThat(dto.toDomainOrNull()).isEqualTo(
             Product(
                 id = 785359,
                 name = "Apple iPhone 6 32GB Grijs",
@@ -43,7 +43,7 @@ class ProductMapperTest {
 
     @Test
     fun `given no list price and no promo, when mapped, then both are null`() {
-        val product = dto.copy(listPriceIncVat = null, promoIcon = null).toDomain()
+        val product = checkNotNull(dto.copy(listPriceIncVat = null, promoIcon = null).toDomainOrNull())
 
         assertThat(product.listPriceCents).isNull()
         assertThat(product.promoText).isNull()

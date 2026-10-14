@@ -8,7 +8,7 @@ android {
     namespace = "com.coolblue.assignment.search.data"
 
     testOptions {
-        unitTests.isReturnDefaultValues = true // SearchRepositoryImpl's Log.w is a no-op in JVM tests
+        unitTests.isReturnDefaultValues = true // the repository and mapper Log.w calls are no-ops in JVM tests
     }
 }
 

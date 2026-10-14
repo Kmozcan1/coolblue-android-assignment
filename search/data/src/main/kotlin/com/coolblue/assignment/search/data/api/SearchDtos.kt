@@ -14,11 +14,11 @@ internal data class SearchResponseDto(
 
 @Serializable
 internal data class ProductDto(
-    val productId: Int,
-    val productName: String,
-    val salesPriceIncVat: Double,
+    val productId: Int? = null,
+    val productName: String? = null,
+    val salesPriceIncVat: Double? = null,
     val listPriceIncVat: Double? = null,
-    val productImage: String,
+    val productImage: String? = null,
     val reviewInformation: ReviewInformationDto = ReviewInformationDto(),
     @SerialName("USPs") val usps: List<String> = emptyList(),
     val promoIcon: PromoIconDto? = null,

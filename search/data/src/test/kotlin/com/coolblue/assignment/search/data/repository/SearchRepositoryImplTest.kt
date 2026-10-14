@@ -80,6 +80,22 @@ class SearchRepositoryImplTest {
     }
 
     @Test
+    fun `given some products miss their id, name, image or price, when searching, then the page loads with the rest`() = runTest {
+        val products = listOf(
+            """{"productName": "Geen id", "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
+            """{"productId": 2, "productName": null, "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
+            """{"productId": 3, "productName": "Geen foto", "salesPriceIncVat": 9.99}""",
+            """{"productId": 4, "productName": "Geen prijs", "salesPriceIncVat": null, "productImage": "https://image"}""",
+            """{"productId": 5, "productName": "Kabel", "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
+        )
+        server.enqueue(MockResponse.Builder().code(200).body("""{"products": ${products.joinToString(prefix = "[", postfix = "]")}, "currentPage": 1, "pageCount": 1}""").build())
+
+        val page = (repository.search("kabel", 1) as AppResult.Success).data
+
+        assertThat(page.products.map { it.id }).containsExactly(5)
+    }
+
+    @Test
     fun `given the request, then query and page are sent as query parameters`() = runTest {
         server.enqueue(MockResponse.Builder().code(200).body(fixture("search_page1.json")).build())
 
