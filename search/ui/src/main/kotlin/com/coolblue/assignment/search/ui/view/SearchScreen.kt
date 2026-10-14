@@ -95,11 +95,13 @@ internal fun SearchScreen(
                     is SearchContent.Empty -> StatusMessage(
                         title = stringResource(R.string.search_empty, content.searchedQuery),
                         detail = stringResource(R.string.search_empty_hint),
-                        modifier = Modifier.verticalScroll(rememberScrollState()).then(StatusPadding),
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).then(StatusPadding),
+                        centered = true,
                     )
                     is SearchContent.Error -> StatusMessage(
                         title = stringResource(content.error.messageRes()),
-                        modifier = Modifier.verticalScroll(rememberScrollState()).then(StatusPadding),
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).then(StatusPadding),
+                        centered = true,
                         actionLabel = stringResource(R.string.retry),
                         onAction = { onAction(SearchUiAction.Retry) },
                     )
