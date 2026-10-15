@@ -142,7 +142,7 @@ a newer state. There are no job fields to cancel by hand.
   more modules and no edits to `search`.
 - **Prices as integer cents.** The API's decimal euros are rounded to `Int` cents once, in the
   mapper, so the domain never does arithmetic on floats. The UI model's mapper writes them in Dutch,
-  once per product, so drawing a row formats nothing.
+  once per product, so drawing a row formats no numbers.
 - **Dutch only.** The API sends product names, USPs and promo labels in Dutch only, so the app's
   own words, prices, ratings and counts are Dutch too, whatever the phone's language. `MainActivity`
   overrides only the language, so plural forms and the libraries' own strings follow it.

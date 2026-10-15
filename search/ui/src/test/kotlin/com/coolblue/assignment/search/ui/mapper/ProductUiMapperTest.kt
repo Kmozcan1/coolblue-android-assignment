@@ -20,8 +20,11 @@ class ProductUiMapperTest {
     )
 
     @Test
-    fun `given a higher list price, when mapped, then it is kept`() {
-        assertThat(product.copy(listPriceCents = 36900).toUiModel().listPrice?.normalised()).isEqualTo("€ 369,00")
+    fun `given a higher list price, when mapped, then the customer pays the sales price and sees the list price`() {
+        val discounted = product.copy(listPriceCents = 36900).toUiModel()
+
+        assertThat(discounted.price.normalised()).isEqualTo("€ 26,99")
+        assertThat(discounted.listPrice?.normalised()).isEqualTo("€ 369,00")
     }
 
     @Test
