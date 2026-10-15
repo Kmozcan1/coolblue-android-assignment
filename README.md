@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, one screen.
   in the app is on the [`in-app-search`](https://github.com/Kmozcan1/coolblue-android-assignment/tree/in-app-search) branch.
 - **Only the newest request counts.** A slow, stale response never overwrites newer results.
 - **Clean Architecture, MVVM, Hilt and Retrofit**, in nine modules to show how the project would grow.
-- **58 unit tests**, written test-first. GitHub Actions runs them on every push.
+- **60 unit tests**, written test-first, **and 6 Compose UI tests**. GitHub Actions runs them on every push.
 - **Pair-programmed with Claude Code**, every design decision discussed first and every line reviewed.
 
 From [Architecture](#architecture) down is optional detail. Engineers: start with its
@@ -125,14 +125,15 @@ a newer state. There are no job fields to cancel by hand.
 | Compose + Material 3 | The UI toolkit the assignment asks for. |
 | JUnit 4, MockK, Truth, Turbine | Unit tests, mocking, readable assertions, Flow testing. |
 | MockWebServer | Tests the repository against real HTTP responses, including the actual JSON the API returns. |
+| Robolectric + Compose UI test | Runs the screen's UI tests on the JVM with the unit tests, so neither you nor CI needs an emulator. |
 
 ## Trade-offs
 
 - **The app shows what the API returns.** The mock ignores the search term, so whether the app
   should search the catalogue itself is a product call. The `in-app-search` branch does, in
   [one commit on top of main](https://github.com/Kmozcan1/coolblue-android-assignment/compare/main...in-app-search) that touches only `search/domain` and this README. Main
-  keeps the use case, though it is a single repository call, so turning in-app search on never
-  touches the ViewModel.
+  keeps the use case, which also skips a page left with no product to show, so turning in-app
+  search on never touches the ViewModel.
 - **Hand-rolled paging, not Paging 3.** Three pages of 24 don't need it. `ProductPage` maps
   straight onto a `PagingSource`, so the data side of a switch is small; the ViewModel and the
   list would trade their sealed `Paging` state, already shaped like `LoadState.append`, for
@@ -150,9 +151,11 @@ a newer state. There are no job fields to cancel by hand.
 | Module | Test | Covers |
 |---|---|---|
 | search/domain | `ProductPageTest` | next page from page count |
+| search/domain | `SearchProductsUseCaseTest` | a page left with no product to show is skipped |
 | search/data | `ProductMapperTest` | DTO to domain, euros to cents, optional fields |
-| search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through, a product with no reviews or explicit nulls, products with no id, name, image or price skipped |
+| search/data | `SearchRepositoryImplTest` | MockWebServer: the real page 1 JSON (every mapped field), query parameters, 500, no connection, bad JSON, an unexpected exception, cancellation passing through, a product with no reviews or explicit nulls, products with no id, name or price skipped, one with no image kept |
 | search/ui | `ProductUiMapperTest` | list price rule, Dutch price, rating and count formatting |
+| search/ui | `SearchScreenTest` (Robolectric) | the product sheet stays closed once its product left the results, pull to refresh, loading more near the end and again when a refine is undone, the search field sliding away and back, a drag on the list closing the keyboard |
 | search/ui | `SearchViewModelTest` | debounce, the opening query is not debounced, first page, empty, error and retry, load more, a row repeated within page 1 or by the next page, edit-and-undo during a load more, duplicate request guard, load-more error and retry, cancellation on query change, saved query and restore, opens on the whole catalogue, clearing brings it back, refine keeps the rows, a late result after clearing is dropped, retry while refining, edit-and-undo keeps the rows, also after the debounce, Retry shows Loading, empty keeps its query, pull to refresh replaces the rows, a failed refresh keeps them, refresh during a refine or a load more, a refresh landing after the query changed is dropped, a refresh survives an edit-and-undo, each failed refresh is a new value, a fast refresh stays visible, a refresh right after a load more, load more and a second refresh ignored during a refresh, a load-more error survives an edit-and-undo but not a refresh |
 
 Run them with `./gradlew test`. They run on every push through GitHub Actions, together with
@@ -161,8 +164,9 @@ Android lint.
 Every logic unit was written test-first: the failing test, then the smallest implementation
 that makes it pass. Each commit carries its tests with it, and test names read as behaviour
 (`given a load more in flight, when the query changes, then it is cancelled and the new query
-loads`). Composables are kept stateless so the ViewModel tests cover the screen's logic;
-there are no Compose UI tests.
+loads`). The screen is stateless, so the ViewModel tests cover its logic. What the composables
+keep themselves (the open sheet, the scroll effects, the sliding field) has Compose UI tests,
+added after the code and each checked by breaking the feature it covers.
 
 ## Built with
 
@@ -175,7 +179,6 @@ was reviewed, and the commit history reads as the build sequence.
   result already holds; there is no second request and no navigation.
 - A navigation library: one screen.
 - ktlint or detekt: valuable on a team, noise in an assignment of this size.
-- Compose UI tests: the screen is stateless and its logic lives in the tested ViewModel.
 - Release signing: nothing here ships.
 - An offline cache: search-as-you-type results are live by nature, and the API is a mock.
   A failed load offers a retry; the rows already on screen stay.
