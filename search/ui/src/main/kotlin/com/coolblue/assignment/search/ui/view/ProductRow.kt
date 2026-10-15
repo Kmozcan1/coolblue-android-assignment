@@ -56,9 +56,6 @@ import coil3.request.crossfade
 import com.coolblue.assignment.core.ui.Dutch
 import com.coolblue.assignment.core.ui.theme.CoolblueColors
 import com.coolblue.assignment.search.ui.R
-import com.coolblue.assignment.search.ui.mapper.formatCount
-import com.coolblue.assignment.search.ui.mapper.formatPrice
-import com.coolblue.assignment.search.ui.mapper.formatRating
 import com.coolblue.assignment.search.ui.model.ProductUiModel
 
 private val TileWidth = 84.dp
@@ -89,11 +86,11 @@ internal fun ProductRow(
                 overflow = TextOverflow.Ellipsis,
             )
             product.promoText?.let { PromoKicker(it, Modifier.padding(top = 2.dp)) }
-            Rating(average = product.rating, reviewCount = product.reviewCount, modifier = Modifier.padding(top = 6.dp))
+            Rating(product.rating, product.reviewCount, product.reviewCountText, Modifier.padding(top = 6.dp))
             Column(modifier = Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 product.usps.take(MAX_USPS_IN_ROW).forEach { Usp(it, singleLine = true) }
             }
-            Price(priceCents = product.priceCents, listPriceCents = product.listPriceCents, modifier = Modifier.padding(top = 12.dp))
+            Price(product.price, product.listPrice, Modifier.padding(top = 12.dp))
             if (product.nextDayDelivery) Delivery(Modifier.padding(top = 2.dp))
         }
     }
@@ -124,11 +121,11 @@ internal fun ProductDetail(
             modifier = Modifier.padding(top = 20.dp),
         )
         product.promoText?.let { PromoKicker(it, Modifier.padding(top = 4.dp)) }
-        Rating(average = product.rating, reviewCount = product.reviewCount, modifier = Modifier.padding(top = 8.dp))
+        Rating(product.rating, product.reviewCount, product.reviewCountText, Modifier.padding(top = 8.dp))
         Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             product.usps.forEach { Usp(it, singleLine = false) }
         }
-        Price(priceCents = product.priceCents, listPriceCents = product.listPriceCents, modifier = Modifier.padding(top = 16.dp))
+        Price(product.price, product.listPrice, Modifier.padding(top = 16.dp))
         if (product.nextDayDelivery) Delivery(Modifier.padding(top = 4.dp))
     }
 }
@@ -160,10 +157,9 @@ private fun PromoKicker(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Rating(average: Double, reviewCount: Int, modifier: Modifier = Modifier) {
+private fun Rating(rating: String, reviewCount: Int, reviewCountText: String, modifier: Modifier = Modifier) {
     if (reviewCount == 0) return
-    val rating = formatRating(average)
-    val reviews = pluralStringResource(R.plurals.review_count, reviewCount, formatCount(reviewCount))
+    val reviews = pluralStringResource(R.plurals.review_count, reviewCount, reviewCountText)
     val spokenRating = stringResource(R.string.rating_a11y, rating, reviews)
     Row(
         modifier = modifier.clearAndSetSemantics { text = spokenRating.spokenInDutch() },
@@ -206,15 +202,14 @@ private fun Usp(text: String, singleLine: Boolean) {
 }
 
 @Composable
-private fun Price(priceCents: Int, listPriceCents: Int?, modifier: Modifier = Modifier) {
+private fun Price(price: String, listPrice: String?, modifier: Modifier = Modifier) {
     FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = formatPrice(priceCents).spokenInDutch(),
+            text = price.spokenInDutch(),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.alignByBaseline(),
         )
-        if (listPriceCents != null) {
-            val listPrice = formatPrice(listPriceCents)
+        if (listPrice != null) {
             val spokenListPrice = stringResource(R.string.list_price_a11y, listPrice)
             Text(
                 text = listPrice,

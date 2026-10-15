@@ -21,32 +21,32 @@ class ProductUiMapperTest {
 
     @Test
     fun `given a higher list price, when mapped, then it is kept`() {
-        assertThat(product.copy(listPriceCents = 36900).toUiModel().listPriceCents).isEqualTo(36900)
+        assertThat(product.copy(listPriceCents = 36900).toUiModel().listPrice?.normalised()).isEqualTo("€ 369,00")
     }
 
     @Test
     fun `given a list price not above the sales price, when mapped, then no list price is shown`() {
-        assertThat(product.copy(listPriceCents = 2699).toUiModel().listPriceCents).isNull()
+        assertThat(product.copy(listPriceCents = 2699).toUiModel().listPrice).isNull()
     }
 
     @Test
-    fun `given 2699 cents, then the price reads as euros with a decimal comma`() {
-        assertThat(formatPrice(2699).normalised()).isEqualTo("€ 26,99")
+    fun `given 2699 cents, when mapped, then the price reads as euros with a decimal comma`() {
+        assertThat(product.toUiModel().price.normalised()).isEqualTo("€ 26,99")
     }
 
     @Test
-    fun `given a price over a thousand euros, then thousands are grouped with a dot`() {
-        assertThat(formatPrice(107900).normalised()).isEqualTo("€ 1.079,00")
+    fun `given a price over a thousand euros, when mapped, then thousands are grouped with a dot`() {
+        assertThat(product.copy(salesPriceCents = 107900).toUiModel().price.normalised()).isEqualTo("€ 1.079,00")
     }
 
     @Test
-    fun `given 2246 reviews, then the count is grouped with a dot`() {
-        assertThat(formatCount(2246)).isEqualTo("2.246")
+    fun `given 2246 reviews, when mapped, then the count is grouped with a dot`() {
+        assertThat(product.copy(reviewCount = 2246).toUiModel().reviewCountText).isEqualTo("2.246")
     }
 
     @Test
-    fun `given a 9_1 average, then the rating uses a decimal comma`() {
-        assertThat(formatRating(9.1)).isEqualTo("9,1")
+    fun `given a 9_1 average, when mapped, then the rating uses a decimal comma`() {
+        assertThat(product.toUiModel().rating).isEqualTo("9,1")
     }
 
     // ICU puts a non-breaking space after the euro sign; the assertions read better with a plain one.

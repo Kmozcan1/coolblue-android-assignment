@@ -13,25 +13,26 @@ internal fun Product.toUiModel(): ProductUiModel = ProductUiModel(
     id = id,
     name = name,
     imageUrl = imageUrl,
-    priceCents = salesPriceCents,
+    price = formatPrice(salesPriceCents),
     // A list price only means something when it is higher than what the customer pays.
-    listPriceCents = listPriceCents?.takeIf { it > salesPriceCents },
-    rating = reviewAverage,
+    listPrice = listPriceCents?.takeIf { it > salesPriceCents }?.let(::formatPrice),
+    rating = formatRating(reviewAverage),
     reviewCount = reviewCount,
+    reviewCountText = formatCount(reviewCount),
     usps = usps,
     promoText = promoText,
     nextDayDelivery = nextDayDelivery,
 )
 
 /** 107900 → "€ 1.079,00". */
-internal fun formatPrice(cents: Int): String =
+private fun formatPrice(cents: Int): String =
     NumberFormat.getCurrencyInstance(Dutch).apply { currency = Euro }.format(cents / 100.0)
 
 /** 2246 → "2.246". */
 internal fun formatCount(count: Int): String = NumberFormat.getIntegerInstance(Dutch).format(count)
 
 /** 9.1 → "9,1". */
-internal fun formatRating(average: Double): String =
+private fun formatRating(average: Double): String =
     NumberFormat.getNumberInstance(Dutch).apply {
         minimumFractionDigits = 1
         maximumFractionDigits = 1
