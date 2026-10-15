@@ -134,7 +134,7 @@ internal fun ProductDetail(
 }
 
 @Composable
-private fun ProductTile(imageUrl: String, modifier: Modifier = Modifier) {
+private fun ProductTile(imageUrl: String?, modifier: Modifier = Modifier) {
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(imageUrl)

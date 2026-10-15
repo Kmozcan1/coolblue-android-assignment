@@ -42,11 +42,12 @@ class ProductMapperTest {
     }
 
     @Test
-    fun `given no list price and no promo, when mapped, then both are null`() {
-        val product = checkNotNull(dto.copy(listPriceIncVat = null, promoIcon = null).toDomainOrNull())
+    fun `given no list price, promo or image, when mapped, then each is null`() {
+        val product = checkNotNull(dto.copy(listPriceIncVat = null, promoIcon = null, productImage = null).toDomainOrNull())
 
         assertThat(product.listPriceCents).isNull()
         assertThat(product.promoText).isNull()
+        assertThat(product.imageUrl).isNull()
     }
 
     @Test

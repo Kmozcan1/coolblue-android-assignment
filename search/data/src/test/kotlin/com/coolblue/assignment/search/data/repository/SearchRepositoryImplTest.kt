@@ -80,7 +80,7 @@ class SearchRepositoryImplTest {
     }
 
     @Test
-    fun `given some products miss their id, name, image or price, when searching, then the page loads with the rest`() = runTest {
+    fun `given some products miss their id, name or price, when searching, then the page loads with the rest`() = runTest {
         val products = listOf(
             """{"productName": "Geen id", "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
             """{"productId": 2, "salesPriceIncVat": 9.99, "productImage": "https://image"}""",
@@ -92,7 +92,7 @@ class SearchRepositoryImplTest {
 
         val page = (repository.search("kabel", 1) as AppResult.Success).data
 
-        assertThat(page.products.map { it.id }).containsExactly(5)
+        assertThat(page.products.map { it.id }).containsExactly(3, 5).inOrder()
     }
 
     @Test

@@ -4,7 +4,7 @@ package com.coolblue.assignment.search.domain.model
 data class Product(
     val id: Int,
     val name: String,
-    val imageUrl: String,
+    val imageUrl: String?,
     val salesPriceCents: Int,
     val listPriceCents: Int?,
     val reviewAverage: Double,
