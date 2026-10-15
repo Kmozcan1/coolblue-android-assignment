@@ -47,4 +47,22 @@ class SearchProductsUseCaseTest {
 
         assertThat(result).isEqualTo(AppResult.Success(ProductPage(emptyList(), page = 2, pageCount = 2)))
     }
+
+    @Test
+    fun `given the server answers every page as an empty page 1, when searching, then it stops after page 2`() = runTest {
+        val requestedPages = mutableListOf<Int>()
+        val searchProducts = SearchProductsUseCase(
+            object : SearchRepository {
+                override suspend fun search(query: String, page: Int): AppResult<ProductPage> {
+                    requestedPages += page
+                    check(requestedPages.size <= 5) { "Still searching after pages $requestedPages" }
+                    return AppResult.Success(ProductPage(products = emptyList(), page = 1, pageCount = 3))
+                }
+            },
+        )
+
+        searchProducts("apple", page = 1)
+
+        assertThat(requestedPages).containsExactly(1, 2).inOrder()
+    }
 }

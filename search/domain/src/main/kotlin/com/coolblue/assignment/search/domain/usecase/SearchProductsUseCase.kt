@@ -11,7 +11,8 @@ class SearchProductsUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(query: String, page: Int): AppResult<ProductPage> {
         val result = repository.search(query, page)
-        val pageAfterAnEmptyOne = (result as? AppResult.Success)?.data?.takeIf { it.products.isEmpty() }?.nextPage
+        // Only ever forward: a server repeating a page number must not turn the search into an endless loop.
+        val pageAfterAnEmptyOne = (result as? AppResult.Success)?.data?.takeIf { it.products.isEmpty() }?.nextPage?.takeIf { it > page }
         return if (pageAfterAnEmptyOne == null) result else invoke(query, pageAfterAnEmptyOne)
     }
 }
