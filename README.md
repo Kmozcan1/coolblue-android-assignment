@@ -25,7 +25,7 @@ Open the project in Android Studio (latest stable) and run `app`, or from the co
 ./gradlew assembleDebug test
 ```
 
-Requires Android 8.0 (API 26) or newer on the device and JDK 17 or newer to build. The app talks
+Requires Android 8.0 (API 26) or newer on the device and JDK 21 or newer to build. The app talks
 to the assignment's mock API; its URL is a constant in `core/network`.
 
 ## What it does
@@ -164,9 +164,9 @@ Android lint.
 Every logic unit was written test-first: the failing test, then the smallest implementation
 that makes it pass. Each commit carries its tests with it, and test names read as behaviour
 (`given a load more in flight, when the query changes, then it is cancelled and the new query
-loads`). The screen is stateless, so the ViewModel tests cover its logic. What the composables
-keep themselves (the open sheet, the scroll effects, the sliding field) has Compose UI tests,
-added after the code and each checked by breaking the feature it covers.
+loads`). The screen takes its state from the ViewModel, so the ViewModel tests cover its logic.
+What the composables keep themselves (the open sheet, the scroll effects, the sliding field) has
+Compose UI tests, added after the code and each checked by breaking the feature it covers.
 
 ## Built with
 
