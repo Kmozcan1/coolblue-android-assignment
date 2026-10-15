@@ -172,7 +172,8 @@ Compose UI tests, added after the code and each checked by breaking the feature 
 ## Built with
 
 Claude Code as a pair programmer. Every design decision above was discussed first, every line
-was reviewed, and the commit history reads as the build sequence.
+was reviewed, and the commit history reads as the build sequence. [CLAUDE.md](CLAUDE.md) is the
+brief Claude worked from: the task, the conventions and the way of working.
 
 ## Left out on purpose
 
