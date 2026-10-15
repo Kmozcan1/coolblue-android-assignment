@@ -1,3 +1,5 @@
+Disclaimer: didn't use git-flow or pull requests for the sake of being faster.
+
 # Coolblue product search
 
 [![CI](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml/badge.svg)](https://github.com/Kmozcan1/coolblue-android-assignment/actions/workflows/ci.yml)
@@ -41,78 +43,6 @@ to the assignment's mock API; its URL is a constant in `core/network`.
 ## Architecture
 
 ![How the app is built: nine modules with dependencies pointing inwards, a search going down to the API and back as one screen state, and one request at a time through collectLatest](docs/architecture.svg)
-
-<details>
-<summary>The same in text: modules, data flow, one request pipeline</summary>
-
-Multi-module Clean Architecture with MVVM and unidirectional data flow. One feature, `search`,
-split into three layers, plus a few shared modules.
-
-```
-app             Application (also Coil's image loader), MainActivity in Dutch, the theme wrapped around the one screen
-build-logic     Gradle convention plugins, so each module's build file is about ten lines
-core/domain     AppResult and AppError, the result contract every repository returns
-core/network    OkHttp, kotlinx-serialization and Retrofit, provided through Hilt
-core/ui         Material 3 theme in Coolblue colours, the Dutch locale
-core/test       MainDispatcherRule, shared by ViewModel tests
-search/domain   Product, ProductPage, SearchRepository, SearchProductsUseCase
-search/data     Retrofit API, DTOs, DTO-to-domain mapper, SearchRepositoryImpl, Hilt bindings
-search/ui       SearchViewModel, UiState, UiAction, composables, UI model and its mapper
-```
-
-Dependencies point inwards: `search/ui` and `search/data` both depend on `search/domain`,
-never on each other, and `search/domain` depends only on `core/domain`. Both are plain Kotlin
-modules with no Android dependency. `app` is the only module that sees everything, which is
-what lets Hilt build the object graph.
-
-### Data flow
-
-```
-SearchScreen ─onAction─▶ SearchViewModel ─▶ SearchProductsUseCase ─▶ SearchRepository (interface)
-                                                                          │
-                                                        SearchRepositoryImpl ─▶ SearchApi ─▶ HTTP
-```
-
-- The screen is stateless. It receives one `SearchUiState` and sends `SearchUiAction`s back.
-  Nothing else crosses that boundary, so the screen can be previewed in every state without a
-  ViewModel.
-- `SearchUiState` holds the query and a sealed `SearchContent`: `Loading`, `Empty`, `Error` or
-  `Loaded`. Exactly one is active, so there is no combination of booleans that can disagree
-  with each other.
-- Tapping a row opens the same product in a bottom sheet, nothing clipped, every USP. Which
-  sheet is open is screen-local `rememberSaveable` state, not part of `SearchUiState`: it is
-  transient chrome over a product the `Loaded` content already holds. It closes when its product
-  is no longer among the rows: a refresh that drops it, a refined query that ends empty or
-  failed, or a restore after process death, since the search starts over.
-- `Loading` only shows when there are no rows to keep: a cold start, a restore after process
-  death, Retry after an error, or a refinement from an empty result. Refining a query that has
-  rows keeps them on screen under a thin progress bar until the new rows replace them at the top.
-  `SearchUiState.isRefining` is not stored: it is true while the typed query differs from the rows'
-  `searchedQuery`. `LoadMore` is ignored meanwhile, since page 2 would belong to the new query.
-  A pull to refresh sets `Loaded.isRefreshing` and shows the pull indicator instead.
-  If it fails the rows stay, since they still answer the query, and `Loaded.refreshFailure` holds
-  the reason until the snackbar has shown it.
-- The repository returns `AppResult`: `Success` with data or `Failure` with an `AppError`.
-  Exceptions stop at the data layer; the ViewModel only ever sees these two cases.
-
-### One request pipeline
-
-Every request the ViewModel makes goes through a single flow, started by
-`searchProductsForEachQueryAndPage()`:
-
-```kotlin
-val firstPageOfEachSearch = query.withIndex().debounce { (index, value) -> if (index == 0 && value == openingQuery) 0 else 300 }.map { 1 }
-merge(firstPageOfEachSearch, productPageRequests)
-    .collectLatest { page -> loadProducts(query.value, page) }
-```
-
-The query asks for page 1: the opening one (blank, or restored after process death) at once, each
-edit after 300 ms without typing. `Retry`, `LoadMore` and `Refresh` push a page number into
-`productPageRequests`. `collectLatest` cancels the previous load whenever a new request arrives, so at
-most one request is ever in flight for the screen and a slow, stale response can never overwrite
-a newer state. There are no job fields to cancel by hand.
-
-</details>
 
 ## Libraries and why
 
